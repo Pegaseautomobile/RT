@@ -7,6 +7,7 @@ const API = `${SUPABASE_URL}/rest/v1/cars`;
 
 let cars = [];
 let selectedPhotos = [];
+let existingPhotos = [];
 
 const $ = id => document.getElementById(id);
 
@@ -108,59 +109,112 @@ $("photos").addEventListener("change", event => {
 
 function preview() {
 
-  if (!selectedPhotos.length) {
-    $("preview").innerHTML =
-      "<p style='opacity:.6'>Aucune photo sélectionnée</p>";
-    return;
-  }
+  let html = "";
 
-  $("preview").innerHTML = selectedPhotos.map((photo, index) => `
-    
-    <div style="
-      position:relative;
-      display:inline-block;
-      margin:6px;
-    ">
+  /* Anciennes photos */
+  existingPhotos.forEach((photo, index) => {
 
-      <img
-        src="${photo.preview}"
-        style="
-          width:150px;
-          height:100px;
-          object-fit:cover;
-          border-radius:10px;
-        "
-      >
+    html += `
+      <div style="
+        position:relative;
+        display:inline-block;
+        margin:6px;
+      ">
 
-      <button
-        type="button"
-        onclick="removePhoto(${index})"
-        style="
-          position:absolute;
-          top:5px;
-          right:5px;
-          width:28px;
-          height:28px;
-          border:0;
-          border-radius:50%;
-          background:#e33;
-          color:white;
-          font-size:20px;
-          cursor:pointer;
-        "
-      >
-        ×
-      </button>
+        <img
+          src="${esc(photo)}"
+          style="
+            width:150px;
+            height:100px;
+            object-fit:cover;
+            border-radius:10px;
+          "
+        >
 
-    </div>
+        <button
+          type="button"
+          onclick="removeExistingPhoto(${index})"
+          style="
+            position:absolute;
+            top:5px;
+            right:5px;
+            width:28px;
+            height:28px;
+            border:0;
+            border-radius:50%;
+            background:#e33;
+            color:white;
+            font-size:20px;
+            cursor:pointer;
+          "
+        >
+          ×
+        </button>
 
-  `).join("");
+      </div>
+    `;
+  });
+
+  /* Nouvelles photos */
+  selectedPhotos.forEach((photo, index) => {
+
+    html += `
+      <div style="
+        position:relative;
+        display:inline-block;
+        margin:6px;
+      ">
+
+        <img
+          src="${photo.preview}"
+          style="
+            width:150px;
+            height:100px;
+            object-fit:cover;
+            border-radius:10px;
+          "
+        >
+
+        <button
+          type="button"
+          onclick="removePhoto(${index})"
+          style="
+            position:absolute;
+            top:5px;
+            right:5px;
+            width:28px;
+            height:28px;
+            border:0;
+            border-radius:50%;
+            background:#e33;
+            color:white;
+            font-size:20px;
+            cursor:pointer;
+          "
+        >
+          ×
+        </button>
+
+      </div>
+    `;
+  });
+
+  $("preview").innerHTML =
+    html ||
+    "<p style='opacity:.6'>Aucune photo sélectionnée</p>";
+}
+
+function removeExistingPhoto(index) {
+  existingPhotos.splice(index, 1);
+  preview();
 }
 
 function removePhoto(index) {
 
   if (selectedPhotos[index]?.preview) {
-    URL.revokeObjectURL(selectedPhotos[index].preview);
+    URL.revokeObjectURL(
+      selectedPhotos[index].preview
+    );
   }
 
   selectedPhotos.splice(index, 1);
@@ -184,7 +238,7 @@ function compressPhoto(file) {
 
       image.onload = () => {
 
-        const maxSize = 1400;
+        const maxSize = 1000;
 
         let width = image.width;
         let height = image.height;
@@ -192,16 +246,14 @@ function compressPhoto(file) {
         if (width > maxSize || height > maxSize) {
 
           if (width > height) {
-            height =
-              Math.round(height * maxSize / width);
-
+            height = Math.round(
+              height * maxSize / width
+            );
             width = maxSize;
-
           } else {
-
-            width =
-              Math.round(width * maxSize / height);
-
+            width = Math.round(
+              width * maxSize / height
+            );
             height = maxSize;
           }
         }
@@ -226,7 +278,7 @@ function compressPhoto(file) {
         const result =
           canvas.toDataURL(
             "image/jpeg",
-            0.75
+            0.60
           );
 
         resolve(result);
@@ -275,10 +327,10 @@ $("carForm").onsubmit = async event => {
     button.disabled = true;
 
     /* =====================
-       COMPRESSER LES PHOTOS
+       NOUVELLES PHOTOS
     ===================== */
 
-    const photoUrls = [];
+    const newPhotoUrls = [];
 
     for (
       let i = 0;
@@ -294,12 +346,18 @@ $("carForm").onsubmit = async event => {
           selectedPhotos[i].file
         );
 
-      photoUrls.push(compressed);
+      newPhotoUrls.push(compressed);
     }
 
     /* =====================
-       CRÉER L'ANNONCE
+       CONSERVER LES ANCIENNES
+       + AJOUTER LES NOUVELLES
     ===================== */
+
+    const allPhotos = [
+      ...existingPhotos,
+      ...newPhotoUrls
+    ];
 
     const car = {
 
@@ -331,12 +389,12 @@ $("carForm").onsubmit = async event => {
         $("description").value.trim(),
 
       photos:
-        photoUrls
+        allPhotos
     };
 
     console.log(
-      "Photos enregistrées :",
-      photoUrls.length
+      "Nombre total de photos :",
+      allPhotos.length
     );
 
     button.innerHTML =
@@ -388,9 +446,7 @@ $("carForm").onsubmit = async event => {
     }
 
     alert(
-      editId
-        ? "✅ Annonce modifiée avec succès !"
-        : "✅ Annonce publiée avec succès !"
+      `✅ Annonce publiée avec succès !\n\n📸 ${allPhotos.length} photo(s) enregistrée(s).`
     );
 
     reset();
@@ -445,7 +501,7 @@ function renderAdmin() {
             car.photos?.[0]
               ? `
                 <img
-                  src="${car.photos[0]}"
+                  src="${esc(car.photos[0])}"
                   style="
                     width:100px;
                     height:70px;
@@ -473,7 +529,7 @@ function renderAdmin() {
             <br>
 
             <small>
-              ${car.photos?.length || 0} photo(s)
+              📸 ${car.photos?.length || 0} photo(s)
             </small>
 
           </div>
@@ -547,6 +603,13 @@ function editCar(id) {
 
   $("description").value =
     car.description || "";
+
+  /* IMPORTANT :
+     On conserve les photos existantes */
+  existingPhotos =
+    Array.isArray(car.photos)
+      ? [...car.photos]
+      : [];
 
   selectedPhotos = [];
 
@@ -625,6 +688,7 @@ function reset() {
   });
 
   selectedPhotos = [];
+  existingPhotos = [];
 
   $("carForm").reset();
 
