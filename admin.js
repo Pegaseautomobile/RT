@@ -4,9 +4,9 @@ const SUPABASE_URL = "https://lkuptpgposnungotdsbk.supabase.co";
 const SUPABASE_KEY = "sb_publishable_AWd0zD__eW-fZ4R-gzyhTw_82mwVbSk";
 
 const API = `${SUPABASE_URL}/rest/v1/cars`;
-const STORAGE_BUCKET = "car-photos";
-const STORAGE_API = `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}`;
-const PUBLIC_STORAGE = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}`;
+
+const BUCKET = "car-photos";
+const STORAGE_URL = `${SUPABASE_URL}/storage/v1/object`;
 
 let cars = [];
 let selectedPhotos = [];
@@ -15,14 +15,14 @@ const $ = id => document.getElementById(id);
 
 
 /* =========================
-   CONNEXION ADMIN
+   CONNEXION
 ========================= */
 
 $("loginBtn").onclick = () => {
 
-  const enteredCode = $("code").value.trim();
+  const code = $("code").value.trim();
 
-  if (enteredCode === CODE) {
+  if (code === CODE) {
 
     sessionStorage.setItem("pegaseAdmin", "1");
 
@@ -81,15 +81,25 @@ async function loadCars() {
     const response = await fetch(API, {
 
       headers: {
+
         apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`
+
+        Authorization:
+          `Bearer ${SUPABASE_KEY}`
+
       }
 
     });
 
+
     if (!response.ok) {
-      throw new Error(await response.text());
+
+      throw new Error(
+        await response.text()
+      );
+
     }
+
 
     cars = await response.json();
 
@@ -108,7 +118,7 @@ async function loadCars() {
 
 
 /* =========================
-   COMPRESSER UNE PHOTO
+   COMPRESSER UNE IMAGE
 ========================= */
 
 function compressImage(file) {
@@ -117,38 +127,53 @@ function compressImage(file) {
 
     const reader = new FileReader();
 
+
     reader.onload = event => {
 
       const image = new Image();
 
+
       image.onload = () => {
 
-        const MAX_WIDTH = 1600;
-        const MAX_HEIGHT = 1200;
+        const maxWidth = 1600;
+        const maxHeight = 1200;
 
         let width = image.width;
         let height = image.height;
 
-        if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+
+        if (
+          width > maxWidth ||
+          height > maxHeight
+        ) {
 
           const ratio = Math.min(
-            MAX_WIDTH / width,
-            MAX_HEIGHT / height
+            maxWidth / width,
+            maxHeight / height
           );
 
-          width = Math.round(width * ratio);
-          height = Math.round(height * ratio);
+          width =
+            Math.round(width * ratio);
+
+          height =
+            Math.round(height * ratio);
 
         }
 
-        const canvas = document.createElement("canvas");
+
+        const canvas =
+          document.createElement("canvas");
+
 
         canvas.width = width;
         canvas.height = height;
 
-        const ctx = canvas.getContext("2d");
 
-        ctx.drawImage(
+        const context =
+          canvas.getContext("2d");
+
+
+        context.drawImage(
           image,
           0,
           0,
@@ -156,36 +181,63 @@ function compressImage(file) {
           height
         );
 
+
         canvas.toBlob(
+
           blob => {
 
             if (!blob) {
+
               reject(
-                new Error("Compression de la photo impossible.")
+                new Error(
+                  "Impossible de compresser l'image."
+                )
               );
+
               return;
+
             }
+
 
             resolve(blob);
 
           },
+
           "image/jpeg",
+
           0.82
+
         );
 
       };
 
+
       image.onerror = () => {
-        reject(new Error("Image impossible à lire."));
+
+        reject(
+          new Error(
+            "Impossible de lire cette image."
+          )
+        );
+
       };
+
 
       image.src = event.target.result;
 
     };
 
+
     reader.onerror = () => {
-      reject(new Error("Impossible de lire le fichier."));
+
+      reject(
+        new Error(
+          "Impossible de lire le fichier."
+        )
+      );
+
     };
+
 
     reader.readAsDataURL(file);
 
@@ -196,133 +248,75 @@ function compressImage(file) {
 
 /* =========================
    ENVOYER UNE PHOTO
-   VERS SUPABASE STORAGE
 ========================= */
 
 async function uploadPhoto(file) {
 
-  const blob = await compressImage(file);
+  const blob =
+    await compressImage(file);
 
-  const uniqueName =
-    `${Date.now()}-${crypto.randomUUID()}.jpg`;
+
+  const filename =
+    `${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2, 10)}.jpg`;
+
 
   const uploadUrl =
-    `${STORAGE_API}/${uniqueName}`;
+    `${STORAGE_URL}/${BUCKET}/${filename}`;
 
 
-  const response = await fetch(uploadUrl, {
+  const response =
+    await fetch(uploadUrl, {
 
-    method: "POST",
+      method: "POST",
 
-    headers: {
+      headers: {
 
-      apikey: SUPABASE_KEY,
+        apikey: SUPABASE_KEY,
 
-      Authorization:
-        `Bearer ${SUPABASE_KEY}`,
+        Authorization:
+          `Bearer ${SUPABASE_KEY}`,
 
-      "Content-Type":
-        "image/jpeg",
+        "Content-Type":
+          "image/jpeg",
 
-      "x-upsert":
-        "false"
+        "x-upsert":
+          "false"
 
-    },
+      },
 
-    body: blob
+      body: blob
 
-  });
+    });
 
 
   if (!response.ok) {
 
-    const errorText =
+    const error =
       await response.text();
 
     throw new Error(
-      `Upload photo impossible : ${errorText}`
+      "Erreur upload photo : " + error
     );
 
   }
 
 
-  return {
-    url: `${PUBLIC_STORAGE}/${uniqueName}`,
-    path: uniqueName
-  };
+  return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${filename}`;
 
 }
 
 
 /* =========================
-   SUPPRIMER UNE PHOTO
-   DE STORAGE
-========================= */
-
-async function deleteStoragePhoto(url) {
-
-  if (!url) {
-    return;
-  }
-
-
-  if (!url.startsWith(PUBLIC_STORAGE)) {
-    return;
-  }
-
-
-  const path =
-    decodeURIComponent(
-      url.substring(
-        `${PUBLIC_STORAGE}/`.length
-      )
-    );
-
-
-  if (!path) {
-    return;
-  }
-
-
-  try {
-
-    await fetch(
-      `${STORAGE_API}/${path}`,
-      {
-
-        method: "DELETE",
-
-        headers: {
-
-          apikey: SUPABASE_KEY,
-
-          Authorization:
-            `Bearer ${SUPABASE_KEY}`
-
-        }
-
-      }
-    );
-
-  } catch (error) {
-
-    console.error(
-      "Suppression photo impossible :",
-      error
-    );
-
-  }
-
-}
-
-
-/* =========================
-   SÉLECTION DES PHOTOS
+   CHOISIR LES PHOTOS
 ========================= */
 
 $("photos").onchange = async e => {
 
-  const files = [...e.target.files];
+  const files =
+    Array.from(e.target.files);
+
 
   if (!files.length) {
     return;
@@ -331,17 +325,9 @@ $("photos").onchange = async e => {
 
   try {
 
-    $("preview").innerHTML =
-      "<p>Préparation des photos...</p>";
-
-
     for (const file of files) {
 
       if (!file.type.startsWith("image/")) {
-
-        alert(
-          `${file.name} n'est pas une image.`
-        );
 
         continue;
 
@@ -353,9 +339,13 @@ $("photos").onchange = async e => {
 
 
       selectedPhotos.push({
+
         type: "new",
+
         file: file,
+
         preview: previewUrl
+
       });
 
     }
@@ -369,18 +359,11 @@ $("photos").onchange = async e => {
     console.error(error);
 
     alert(
-      "Impossible de préparer les photos."
+      "Impossible de charger les photos."
     );
-
-    preview();
 
   }
 
-
-  /*
-    Permet de sélectionner à nouveau
-    les mêmes fichiers.
-  */
 
   e.target.value = "";
 
@@ -388,14 +371,18 @@ $("photos").onchange = async e => {
 
 
 /* =========================
-   APERÇU DES PHOTOS
+   APERÇU
 ========================= */
 
 function preview() {
 
+  const box =
+    $("preview");
+
+
   if (!selectedPhotos.length) {
 
-    $("preview").innerHTML =
+    box.innerHTML =
       "<p>Aucune photo sélectionnée.</p>";
 
     return;
@@ -403,12 +390,11 @@ function preview() {
   }
 
 
-  $("preview").innerHTML =
-
+  box.innerHTML =
     selectedPhotos
       .map((photo, index) => {
 
-        const src =
+        const source =
           photo.type === "new"
             ? photo.preview
             : photo.url;
@@ -420,20 +406,18 @@ function preview() {
             style="
               display:inline-flex;
               flex-direction:column;
-              gap:6px;
               margin:6px;
-              vertical-align:top;
+              gap:5px;
             "
           >
 
             <img
-              src="${src}"
+              src="${source}"
               style="
                 width:140px;
                 height:100px;
                 object-fit:cover;
                 border-radius:10px;
-                border:2px solid #ddd;
               "
             >
 
@@ -443,9 +427,9 @@ function preview() {
               style="
                 background:#e64b4b;
                 color:white;
-                border:none;
-                padding:6px;
+                border:0;
                 border-radius:6px;
+                padding:6px;
                 cursor:pointer;
               "
             >
@@ -485,7 +469,11 @@ function removePhoto(index) {
   }
 
 
-  selectedPhotos.splice(index, 1);
+  selectedPhotos.splice(
+    index,
+    1
+  );
+
 
   preview();
 
@@ -507,56 +495,43 @@ $("carForm").onsubmit = async e => {
 
   const old =
     cars.find(
-      c => String(c.id) === String(editId)
+      car =>
+        String(car.id) ===
+        String(editId)
     );
 
 
   try {
 
+    const photoUrls = [];
+
+
     /*
-      Les anciennes URLs sont conservées.
-      Les nouvelles photos seront uploadées
+      Envoyer les nouvelles photos
       dans Supabase Storage.
     */
 
-    const finalPhotos = [];
-
-    const newlyUploaded = [];
-
-
-    /*
-      UPLOAD DES PHOTOS
-    */
-
-    for (const photo of selectedPhotos) {
+    for (
+      const photo of selectedPhotos
+    ) {
 
       if (photo.type === "existing") {
 
-        finalPhotos.push(
+        photoUrls.push(
           photo.url
         );
-
-        continue;
 
       }
 
 
       if (photo.type === "new") {
 
-        const uploaded =
+        const url =
           await uploadPhoto(
             photo.file
           );
 
-
-        finalPhotos.push(
-          uploaded.url
-        );
-
-
-        newlyUploaded.push(
-          uploaded.url
-        );
+        photoUrls.push(url);
 
       }
 
@@ -593,7 +568,7 @@ $("carForm").onsubmit = async e => {
         $("description").value.trim(),
 
       photos:
-        finalPhotos
+        photoUrls
 
     };
 
@@ -601,147 +576,91 @@ $("carForm").onsubmit = async e => {
     let response;
 
 
-    /* =========================
-       MODIFIER
-    ========================= */
+    /* MODIFICATION */
 
     if (editId) {
 
-      response = await fetch(
+      response =
+        await fetch(
+          `${API}?id=eq.${editId}`,
+          {
 
-        `${API}?id=eq.${editId}`,
+            method: "PATCH",
 
-        {
+            headers: {
 
-          method: "PATCH",
+              apikey:
+                SUPABASE_KEY,
 
-          headers: {
+              Authorization:
+                `Bearer ${SUPABASE_KEY}`,
 
-            apikey: SUPABASE_KEY,
+              "Content-Type":
+                "application/json",
 
-            Authorization:
-              `Bearer ${SUPABASE_KEY}`,
+              Prefer:
+                "return=minimal"
 
-            "Content-Type":
-              "application/json",
+            },
 
-            Prefer:
-              "return=minimal"
+            body:
+              JSON.stringify(car)
 
-          },
-
-          body:
-            JSON.stringify(car)
-
-        }
-
-      );
+          }
+        );
 
     }
 
 
-    /* =========================
-       AJOUTER
-    ========================= */
+    /* NOUVELLE ANNONCE */
 
     else {
 
-      response = await fetch(
+      response =
+        await fetch(
+          API,
+          {
 
-        API,
+            method: "POST",
 
-        {
+            headers: {
 
-          method: "POST",
+              apikey:
+                SUPABASE_KEY,
 
-          headers: {
+              Authorization:
+                `Bearer ${SUPABASE_KEY}`,
 
-            apikey: SUPABASE_KEY,
+              "Content-Type":
+                "application/json",
 
-            Authorization:
-              `Bearer ${SUPABASE_KEY}`,
+              Prefer:
+                "return=minimal"
 
-            "Content-Type":
-              "application/json",
+            },
 
-            Prefer:
-              "return=minimal"
+            body:
+              JSON.stringify(car)
 
-          },
-
-          body:
-            JSON.stringify(car)
-
-        }
-
-      );
+          }
+        );
 
     }
 
 
     if (!response.ok) {
 
-      const errorText =
-        await response.text();
-
-
-      /*
-        Si l'annonce n'a pas été enregistrée,
-        on supprime les nouvelles photos
-        envoyées inutilement.
-      */
-
-      for (
-        const photoUrl of newlyUploaded
-      ) {
-
-        await deleteStoragePhoto(
-          photoUrl
-        );
-
-      }
-
-
       throw new Error(
-        errorText
+        await response.text()
       );
 
     }
 
 
-    /*
-      Si on modifiait une annonce,
-      les anciennes photos retirées
-      peuvent être supprimées de Storage.
-    */
-
-    if (editId && old?.photos) {
-
-      for (
-        const oldPhoto of old.photos
-      ) {
-
-        if (
-          !finalPhotos.includes(oldPhoto)
-        ) {
-
-          await deleteStoragePhoto(
-            oldPhoto
-          );
-
-        }
-
-      }
-
-    }
-
-
     alert(
-
       editId
         ? "Annonce modifiée avec succès !"
         : "Annonce ajoutée avec succès !"
-
     );
 
 
@@ -755,7 +674,7 @@ $("carForm").onsubmit = async e => {
     console.error(error);
 
     alert(
-      "Erreur lors de l'enregistrement :\n\n" +
+      "Erreur :\n\n" +
       error.message
     );
 
@@ -775,9 +694,8 @@ function renderAdmin() {
 
 
   $("adminCars").innerHTML =
-
     cars
-      .map(c => `
+      .map(car => `
 
         <div class="admin-car">
 
@@ -790,12 +708,13 @@ function renderAdmin() {
           >
 
             ${
-              c.photos?.[0]
+              car.photos &&
+              car.photos.length
 
                 ? `
 
                   <img
-                    src="${esc(c.photos[0])}"
+                    src="${esc(car.photos[0])}"
                     style="
                       width:100px;
                       height:75px;
@@ -814,14 +733,14 @@ function renderAdmin() {
             <div>
 
               <b>
-                ${esc(c.brand)}
-                ${esc(c.model)}
+                ${esc(car.brand)}
+                ${esc(car.model)}
               </b>
 
               <br>
 
               <span>
-                ${esc(c.price)}
+                ${esc(car.price)}
               </span>
 
             </div>
@@ -832,17 +751,17 @@ function renderAdmin() {
           <div class="admin-actions">
 
             <button
-              onclick="editCar('${esc(String(c.id))}')"
+              onclick="editCar('${esc(String(car.id))}')"
             >
               ✏️ Modifier
             </button>
 
 
             <button
-              onclick="deleteCar('${esc(String(c.id))}')"
+              onclick="deleteCar('${esc(String(car.id))}')"
               style="
                 background:#e64b4b;
-                color:#fff;
+                color:white;
               "
             >
               🗑️ Supprimer
@@ -859,14 +778,16 @@ function renderAdmin() {
 
 
 /* =========================
-   MODIFIER UNE ANNONCE
+   MODIFIER
 ========================= */
 
 function editCar(id) {
 
   const car =
     cars.find(
-      c => String(c.id) === String(id)
+      item =>
+        String(item.id) ===
+        String(id)
     );
 
 
@@ -919,8 +840,11 @@ function editCar(id) {
     Array.isArray(car.photos)
 
       ? car.photos.map(url => ({
+
           type: "existing",
+
           url: url
+
         }))
 
       : [];
@@ -963,22 +887,9 @@ async function deleteCar(id) {
 
   try {
 
-    const car =
-      cars.find(
-        c => String(c.id) === String(id)
-      );
-
-
-    /*
-      Supprimer l'annonce
-      de la table cars.
-    */
-
     const response =
       await fetch(
-
         `${API}?id=eq.${id}`,
-
         {
 
           method: "DELETE",
@@ -994,38 +905,14 @@ async function deleteCar(id) {
           }
 
         }
-
       );
 
 
     if (!response.ok) {
 
-      const errorText =
-        await response.text();
-
       throw new Error(
-        errorText
+        await response.text()
       );
-
-    }
-
-
-    /*
-      Supprimer aussi ses photos
-      de Supabase Storage.
-    */
-
-    if (car?.photos) {
-
-      for (
-        const photo of car.photos
-      ) {
-
-        await deleteStoragePhoto(
-          photo
-        );
-
-      }
 
     }
 
@@ -1058,34 +945,14 @@ async function deleteCar(id) {
 
 function reset() {
 
-  /*
-    Libérer les aperçus temporaires.
-  */
-
-  selectedPhotos.forEach(photo => {
-
-    if (
-      photo.type === "new" &&
-      photo.preview
-    ) {
-
-      URL.revokeObjectURL(
-        photo.preview
-      );
-
-    }
-
-  });
-
-
   $("carForm").reset();
 
   $("editId").value = "";
 
   selectedPhotos = [];
 
-  preview();
-
+  $("preview").innerHTML =
+    "<p>Aucune photo sélectionnée.</p>";
 
   $("formTitle").textContent =
     "Ajouter un véhicule";
@@ -1093,12 +960,16 @@ function reset() {
 }
 
 
+/* =========================
+   BOUTON ANNULER
+========================= */
+
 $("cancel").onclick =
   reset;
 
 
 /* =========================
-   PROTECTION DU TEXTE
+   PROTECTION TEXTE
 ========================= */
 
 function esc(value) {
