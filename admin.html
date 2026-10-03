@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Administration — Pégase Automobile</title>
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body class="admin-page">
+
+<div class="admin-wrap">
+
+  <div id="login" class="login-card">
+    <div class="logo">♞ <span>PÉGASE</span> AUTOMOBILE</div>
+
+    <p>ESPACE ADMINISTRATION</p>
+
+    <h1>Accès privé</h1>
+
+    <input
+      id="code"
+      type="password"
+      placeholder="Code administrateur"
+      autocomplete="off"
+    >
+
+    <button id="loginBtn" class="btn gold">
+      Se connecter
+    </button>
+
+    <a href="index.html">
+      ← Retour au site
+    </a>
+
+    <div id="error" class="error"></div>
+  </div>
+
+
+  <div id="panel" hidden>
+
+    <header class="admin-head">
+
+      <div>
+        <div class="logo">
+          ♞ <span>PÉGASE</span> AUTOMOBILE
+        </div>
+
+        <small>
+          TABLEAU DE BORD
+        </small>
+      </div>
+
+      <div>
+        <button id="logout" class="btn red">
+          Déconnexion
+        </button>
+      </div>
+
+    </header>
+
+
+    <main class="dashboard">
+
+      <div class="stats">
+
+        <div>
+          <b id="count">0</b>
+          <span>Annonces</span>
+        </div>
+
+        <div>
+          <b>∞</b>
+          <span>Photos possibles</span>
+        </div>
+
+      </div>
+
+
+      <section class="editor">
+
+        <h2 id="formTitle">
+          Ajouter un véhicule
+        </h2>
+
+
+        <form id="carForm">
+
+          <input
+            type="hidden"
+            id="editId"
+          >
+
+
+          <div class="form-grid">
+
+            <input
+              id="brand"
+              required
+              placeholder="Marque (ex. Mercedes)"
+            >
+
+            <input
+              id="model"
+              required
+              placeholder="Modèle"
+            >
+
+            <input
+              id="price"
+              required
+              placeholder="Prix (ex. 24 990 €)"
+            >
+
+            <input
+              id="year"
+              required
+              type="number"
+              placeholder="Année"
+            >
+
+            <input
+              id="km"
+              required
+              placeholder="Kilométrage"
+            >
+
+            <select id="carFuel" required>
+
+              <option value="">
+                Carburant
+              </option>
+
+              <option>
+                Essence
+              </option>
+
+              <option>
+                Diesel
+              </option>
+
+              <option>
+                Hybride
+              </option>
+
+              <option>
+                Électrique
+              </option>
+
+            </select>
+
+
+            <select id="gear">
+
+              <option>
+                Automatique
+              </option>
+
+              <option>
+                Manuelle
+              </option>
+
+            </select>
+
+
+            <input
+              id="location"
+              placeholder="Localisation"
+            >
+
+          </div>
+
+
+          <textarea
+            id="description"
+            placeholder="Description du véhicule"
+          ></textarea>
+
+
+          <label class="upload">
+
+            📸 Sélectionner plusieurs photos
+
+            <input
+              id="photos"
+              type="file"
+              accept="image/*"
+              multiple
+            >
+
+          </label>
+
+
+          <div
+            id="preview"
+            class="preview"
+          ></div>
+
+
+          <div class="actions">
+
+            <button
+              class="btn gold"
+              type="submit"
+            >
+              💾 Enregistrer l'annonce
+            </button>
+
+            <button
+              class="btn ghost"
+              type="button"
+              id="cancel"
+            >
+              Annuler
+            </button>
+
+          </div>
+
+        </form>
+
+      </section>
+
+
+      <section class="editor">
+
+        <h2>
+          Annonces publiées
+        </h2>
+
+        <div id="adminCars"></div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+</div>
+
+
+<script src="admin.js"></script>
+
+</body>
+</html>
