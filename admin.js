@@ -30,6 +30,7 @@ $("loginBtn").onclick = () => {
     $("error").textContent = "Code incorrect.";
 
   }
+
 };
 
 
@@ -84,7 +85,7 @@ async function loadCars() {
     });
 
     if (!response.ok) {
-      throw new Error("Erreur Supabase");
+      throw new Error(await response.text());
     }
 
     cars = await response.json();
@@ -107,38 +108,202 @@ async function loadCars() {
    PHOTOS
 ========================= */
 
+/*
+   On compresse les photos avant de les enregistrer.
+   Cela évite d'envoyer des images énormes à Supabase.
+*/
+
+function compressImage(file) {
+
+  return new Promise((resolve, reject) => {
+
+    const reader = new FileReader();
+
+    reader.onload = event => {
+
+      const image = new Image();
+
+      image.onload = () => {
+
+        const MAX_WIDTH = 1400;
+        const MAX_HEIGHT = 1000;
+
+        let width = image.width;
+        let height = image.height;
+
+        if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+
+          const ratio = Math.min(
+            MAX_WIDTH / width,
+            MAX_HEIGHT / height
+          );
+
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+
+        }
+
+        const canvas = document.createElement("canvas");
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+
+        ctx.drawImage(
+          image,
+          0,
+          0,
+          width,
+          height
+        );
+
+        const compressed = canvas.toDataURL(
+          "image/jpeg",
+          0.72
+        );
+
+        resolve(compressed);
+
+      };
+
+      image.onerror = () => {
+        reject(new Error("Impossible de lire l'image."));
+      };
+
+      image.src = event.target.result;
+
+    };
+
+    reader.onerror = () => {
+      reject(new Error("Impossible de charger la photo."));
+    };
+
+    reader.readAsDataURL(file);
+
+  });
+
+}
+
+
+/* =========================
+   SÉLECTION DES PHOTOS
+========================= */
+
 $("photos").onchange = async e => {
 
-  selectedPhotos = await Promise.all(
+  const files = [...e.target.files];
 
-    [...e.target.files].map(file =>
+  if (!files.length) {
+    return;
+  }
 
-      new Promise(resolve => {
+  try {
 
-        const reader = new FileReader();
+    $("preview").innerHTML =
+      "<p>Compression des photos...</p>";
 
-        reader.onload = () => resolve(reader.result);
+    const newPhotos = await Promise.all(
 
-        reader.readAsDataURL(file);
+      files.map(file => compressImage(file))
 
-      })
+    );
 
-    )
+    selectedPhotos = [
+      ...selectedPhotos,
+      ...newPhotos
+    ];
 
-  );
+    preview();
 
-  preview();
+  } catch (error) {
+
+    console.error(error);
+
+    alert(
+      "Une ou plusieurs photos n'ont pas pu être chargées."
+    );
+
+    preview();
+
+  }
 
 };
 
 
+/* =========================
+   APERÇU DES PHOTOS
+========================= */
+
 function preview() {
+
+  if (!selectedPhotos.length) {
+
+    $("preview").innerHTML =
+      "<p>Aucune photo sélectionnée.</p>";
+
+    return;
+
+  }
 
   $("preview").innerHTML = selectedPhotos
 
-    .map(photo => `<img src="${photo}">`)
+    .map((photo, index) => `
+
+      <div
+        style="
+          display:inline-flex;
+          flex-direction:column;
+          gap:6px;
+          margin:6px;
+          vertical-align:top;
+        "
+      >
+
+        <img
+          src="${photo}"
+          style="
+            width:140px;
+            height:100px;
+            object-fit:cover;
+            border-radius:10px;
+            border:2px solid #ddd;
+          "
+        >
+
+        <button
+          type="button"
+          onclick="removePhoto(${index})"
+          style="
+            background:#e64b4b;
+            color:white;
+            border:none;
+            padding:6px;
+            border-radius:6px;
+            cursor:pointer;
+          "
+        >
+          🗑️ Supprimer
+        </button>
+
+      </div>
+
+    `)
 
     .join("");
+
+}
+
+
+/* =========================
+   SUPPRIMER UNE PHOTO
+========================= */
+
+function removePhoto(index) {
+
+  selectedPhotos.splice(index, 1);
+
+  preview();
 
 }
 
@@ -160,23 +325,23 @@ $("carForm").onsubmit = async e => {
 
   const car = {
 
-    brand: $("brand").value,
+    brand: $("brand").value.trim(),
 
-    model: $("model").value,
+    model: $("model").value.trim(),
 
-    price: $("price").value,
+    price: $("price").value.trim(),
 
     year: Number($("year").value),
 
-    km: $("km").value,
+    km: $("km").value.trim(),
 
     fuel: $("carFuel").value,
 
-    gear: $("gear").value,
+    gear: $("gear").value.trim(),
 
-    location: $("location").value,
+    location: $("location").value.trim(),
 
-    description: $("description").value,
+    description: $("description").value.trim(),
 
     photos:
       selectedPhotos.length
@@ -191,7 +356,9 @@ $("carForm").onsubmit = async e => {
     let response;
 
 
-    /* MODIFIER */
+    /* =========================
+       MODIFIER
+    ========================= */
 
     if (editId) {
 
@@ -224,7 +391,9 @@ $("carForm").onsubmit = async e => {
     }
 
 
-    /* AJOUTER */
+    /* =========================
+       AJOUTER
+    ========================= */
 
     else {
 
@@ -260,6 +429,8 @@ $("carForm").onsubmit = async e => {
     if (!response.ok) {
 
       const errorText = await response.text();
+
+      console.error(errorText);
 
       throw new Error(errorText);
 
@@ -308,13 +479,35 @@ function renderAdmin() {
 
       <div class="admin-car">
 
-        <div style="display:flex;gap:12px;align-items:center">
+        <div
+          style="
+            display:flex;
+            gap:12px;
+            align-items:center;
+          "
+        >
 
           ${
             c.photos?.[0]
-              ? `<img src="${c.photos[0]}">`
+
+              ? `
+
+                <img
+                  src="${c.photos[0]}"
+                  style="
+                    width:100px;
+                    height:75px;
+                    object-fit:cover;
+                    border-radius:10px;
+                  "
+                >
+
+              `
+
               : ""
+
           }
+
 
           <div>
 
@@ -344,7 +537,10 @@ function renderAdmin() {
 
           <button
             onclick="deleteCar('${c.id}')"
-            style="background:#e64b4b;color:#fff"
+            style="
+              background:#e64b4b;
+              color:#fff;
+            "
           >
             🗑️ Supprimer
           </button>
@@ -361,7 +557,7 @@ function renderAdmin() {
 
 
 /* =========================
-   MODIFIER
+   MODIFIER UNE ANNONCE
 ========================= */
 
 function editCar(id) {
@@ -375,26 +571,30 @@ function editCar(id) {
 
   $("editId").value = car.id;
 
-  $("brand").value = car.brand;
+  $("brand").value = car.brand || "";
 
-  $("model").value = car.model;
+  $("model").value = car.model || "";
 
-  $("price").value = car.price;
+  $("price").value = car.price || "";
 
-  $("year").value = car.year;
+  $("year").value = car.year || "";
 
-  $("km").value = car.km;
+  $("km").value = car.km || "";
 
-  $("carFuel").value = car.fuel;
+  $("carFuel").value = car.fuel || "";
 
-  $("gear").value = car.gear;
+  $("gear").value = car.gear || "";
 
-  $("location").value = car.location;
+  $("location").value = car.location || "";
 
-  $("description").value = car.description;
+  $("description").value =
+    car.description || "";
 
 
-  selectedPhotos = car.photos || [];
+  selectedPhotos = Array.isArray(car.photos)
+    ? [...car.photos]
+    : [];
+
 
   preview();
 
@@ -404,15 +604,18 @@ function editCar(id) {
 
 
   window.scrollTo({
+
     top: 0,
+
     behavior: "smooth"
+
   });
 
 }
 
 
 /* =========================
-   SUPPRIMER
+   SUPPRIMER UNE ANNONCE
 ========================= */
 
 async function deleteCar(id) {
@@ -450,9 +653,15 @@ async function deleteCar(id) {
 
 
     if (!response.ok) {
-      throw new Error("Suppression impossible.");
+
+      const errorText = await response.text();
+
+      throw new Error(errorText);
+
     }
 
+
+    alert("Annonce supprimée avec succès !");
 
     await loadCars();
 
@@ -471,7 +680,7 @@ async function deleteCar(id) {
 
 
 /* =========================
-   ANNULER
+   ANNULER / RÉINITIALISER
 ========================= */
 
 function reset() {
@@ -494,7 +703,7 @@ $("cancel").onclick = reset;
 
 
 /* =========================
-   PROTECTION AFFICHAGE
+   PROTECTION DU TEXTE
 ========================= */
 
 function esc(value) {
@@ -506,9 +715,13 @@ function esc(value) {
     character => ({
 
       "&": "&amp;",
+
       "<": "&lt;",
+
       ">": "&gt;",
+
       '"': "&quot;",
+
       "'": "&#039;"
 
     }[character])
