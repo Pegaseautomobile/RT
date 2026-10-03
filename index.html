@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pégase Automobile</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="bg"></div>
+
+<header>
+  <a class="logo" href="index.html">♞ <span>PÉGASE</span> AUTOMOBILE</a>
+  <nav>
+    <a href="#accueil">Accueil</a>
+    <a href="#vehicules">Véhicules</a>
+    <a href="#services">Services</a>
+    <a href="#contact">Contact</a>
+  </nav>
+</header>
+
+<section id="accueil" class="hero">
+  <div class="hero-content reveal">
+    <div class="badge">PÉGASE AUTOMOBILE</div>
+    <h1>L'automobile,<br><strong>autrement.</strong></h1>
+    <p>Découvrez nos véhicules d'occasion sélectionnés avec soin.</p>
+    <a class="btn gold" href="#vehicules">Voir les véhicules →</a>
+  </div>
+  <div class="scroll">DÉFILER ↓</div>
+</section>
+
+<section id="vehicules" class="section">
+  <div class="heading reveal">
+    <small>NOTRE STOCK</small>
+    <h2>Nos véhicules</h2>
+    <p>Retrouvez nos annonces disponibles.</p>
+  </div>
+
+  <div class="filters">
+    <input id="search" placeholder="🔎 Rechercher une marque ou un modèle">
+    <select id="fuel">
+      <option value="">Tous les carburants</option>
+      <option>Essence</option>
+      <option>Diesel</option>
+      <option>Hybride</option>
+      <option>Électrique</option>
+    </select>
+  </div>
+
+  <div id="cars" class="cars"></div>
+  <p id="empty" class="empty" hidden>Aucun véhicule trouvé.</p>
+</section>
+
+<section id="services" class="section dark">
+  <div class="heading reveal">
+    <small>NOTRE ENGAGEMENT</small>
+    <h2>Simple. Clair. Automobile.</h2>
+  </div>
+
+  <div class="services">
+    <article>
+      <span>✦</span>
+      <h3>Sélection</h3>
+      <p>Des véhicules présentés avec leurs informations essentielles.</p>
+    </article>
+
+    <article>
+      <span>◆</span>
+      <h3>Transparence</h3>
+      <p>Prix, kilométrage, année et motorisation affichés clairement.</p>
+    </article>
+
+    <article>
+      <span>↗</span>
+      <h3>Contact direct</h3>
+      <p>Un bouton permet de joindre directement le vendeur.</p>
+    </article>
+  </div>
+</section>
+
+<section id="contact" class="section contact">
+  <div class="contact-box reveal">
+    <small>CONTACT</small>
+    <h2>Une voiture vous intéresse ?</h2>
+    <p>Appelez Pégase Automobile directement.</p>
+    <a class="btn green" href="tel:+33643486124">
+      Mettre en relation avec le vendeur
+    </a>
+  </div>
+</section>
+
+<footer>
+  © <span id="year"></span> Pégase Automobile ·
+  <a href="admin.html">Administration</a>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
