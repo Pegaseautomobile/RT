@@ -4,6 +4,9 @@ const SUPABASE_URL = "https://lkuptpgposnungotdsbk.supabase.co";
 const SUPABASE_KEY = "sb_publishable_AWd0zD__eW-fZ4R-gzyhTw_82mwVbSk";
 
 const API = `${SUPABASE_URL}/rest/v1/cars`;
+const STORAGE_BUCKET = "car-photos";
+const STORAGE_API = `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}`;
+const PUBLIC_STORAGE = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}`;
 
 let cars = [];
 let selectedPhotos = [];
@@ -105,13 +108,8 @@ async function loadCars() {
 
 
 /* =========================
-   PHOTOS
+   COMPRESSER UNE PHOTO
 ========================= */
-
-/*
-   On compresse les photos avant de les enregistrer.
-   Cela évite d'envoyer des images énormes à Supabase.
-*/
 
 function compressImage(file) {
 
@@ -125,8 +123,8 @@ function compressImage(file) {
 
       image.onload = () => {
 
-        const MAX_WIDTH = 1400;
-        const MAX_HEIGHT = 1000;
+        const MAX_WIDTH = 1600;
+        const MAX_HEIGHT = 1200;
 
         let width = image.width;
         let height = image.height;
@@ -158,17 +156,27 @@ function compressImage(file) {
           height
         );
 
-        const compressed = canvas.toDataURL(
-          "image/jpeg",
-          0.72
-        );
+        canvas.toBlob(
+          blob => {
 
-        resolve(compressed);
+            if (!blob) {
+              reject(
+                new Error("Compression de la photo impossible.")
+              );
+              return;
+            }
+
+            resolve(blob);
+
+          },
+          "image/jpeg",
+          0.82
+        );
 
       };
 
       image.onerror = () => {
-        reject(new Error("Impossible de lire l'image."));
+        reject(new Error("Image impossible à lire."));
       };
 
       image.src = event.target.result;
@@ -176,12 +184,134 @@ function compressImage(file) {
     };
 
     reader.onerror = () => {
-      reject(new Error("Impossible de charger la photo."));
+      reject(new Error("Impossible de lire le fichier."));
     };
 
     reader.readAsDataURL(file);
 
   });
+
+}
+
+
+/* =========================
+   ENVOYER UNE PHOTO
+   VERS SUPABASE STORAGE
+========================= */
+
+async function uploadPhoto(file) {
+
+  const blob = await compressImage(file);
+
+  const uniqueName =
+    `${Date.now()}-${crypto.randomUUID()}.jpg`;
+
+  const uploadUrl =
+    `${STORAGE_API}/${uniqueName}`;
+
+
+  const response = await fetch(uploadUrl, {
+
+    method: "POST",
+
+    headers: {
+
+      apikey: SUPABASE_KEY,
+
+      Authorization:
+        `Bearer ${SUPABASE_KEY}`,
+
+      "Content-Type":
+        "image/jpeg",
+
+      "x-upsert":
+        "false"
+
+    },
+
+    body: blob
+
+  });
+
+
+  if (!response.ok) {
+
+    const errorText =
+      await response.text();
+
+    throw new Error(
+      `Upload photo impossible : ${errorText}`
+    );
+
+  }
+
+
+  return {
+    url: `${PUBLIC_STORAGE}/${uniqueName}`,
+    path: uniqueName
+  };
+
+}
+
+
+/* =========================
+   SUPPRIMER UNE PHOTO
+   DE STORAGE
+========================= */
+
+async function deleteStoragePhoto(url) {
+
+  if (!url) {
+    return;
+  }
+
+
+  if (!url.startsWith(PUBLIC_STORAGE)) {
+    return;
+  }
+
+
+  const path =
+    decodeURIComponent(
+      url.substring(
+        `${PUBLIC_STORAGE}/`.length
+      )
+    );
+
+
+  if (!path) {
+    return;
+  }
+
+
+  try {
+
+    await fetch(
+      `${STORAGE_API}/${path}`,
+      {
+
+        method: "DELETE",
+
+        headers: {
+
+          apikey: SUPABASE_KEY,
+
+          Authorization:
+            `Bearer ${SUPABASE_KEY}`
+
+        }
+
+      }
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Suppression photo impossible :",
+      error
+    );
+
+  }
 
 }
 
@@ -198,35 +328,61 @@ $("photos").onchange = async e => {
     return;
   }
 
+
   try {
 
     $("preview").innerHTML =
-      "<p>Compression des photos...</p>";
+      "<p>Préparation des photos...</p>";
 
-    const newPhotos = await Promise.all(
 
-      files.map(file => compressImage(file))
+    for (const file of files) {
 
-    );
+      if (!file.type.startsWith("image/")) {
 
-    selectedPhotos = [
-      ...selectedPhotos,
-      ...newPhotos
-    ];
+        alert(
+          `${file.name} n'est pas une image.`
+        );
+
+        continue;
+
+      }
+
+
+      const previewUrl =
+        URL.createObjectURL(file);
+
+
+      selectedPhotos.push({
+        type: "new",
+        file: file,
+        preview: previewUrl
+      });
+
+    }
+
 
     preview();
+
 
   } catch (error) {
 
     console.error(error);
 
     alert(
-      "Une ou plusieurs photos n'ont pas pu être chargées."
+      "Impossible de préparer les photos."
     );
 
     preview();
 
   }
+
+
+  /*
+    Permet de sélectionner à nouveau
+    les mêmes fichiers.
+  */
+
+  e.target.value = "";
 
 };
 
@@ -246,51 +402,62 @@ function preview() {
 
   }
 
-  $("preview").innerHTML = selectedPhotos
 
-    .map((photo, index) => `
+  $("preview").innerHTML =
 
-      <div
-        style="
-          display:inline-flex;
-          flex-direction:column;
-          gap:6px;
-          margin:6px;
-          vertical-align:top;
-        "
-      >
+    selectedPhotos
+      .map((photo, index) => {
 
-        <img
-          src="${photo}"
-          style="
-            width:140px;
-            height:100px;
-            object-fit:cover;
-            border-radius:10px;
-            border:2px solid #ddd;
-          "
-        >
+        const src =
+          photo.type === "new"
+            ? photo.preview
+            : photo.url;
 
-        <button
-          type="button"
-          onclick="removePhoto(${index})"
-          style="
-            background:#e64b4b;
-            color:white;
-            border:none;
-            padding:6px;
-            border-radius:6px;
-            cursor:pointer;
-          "
-        >
-          🗑️ Supprimer
-        </button>
 
-      </div>
+        return `
 
-    `)
+          <div
+            style="
+              display:inline-flex;
+              flex-direction:column;
+              gap:6px;
+              margin:6px;
+              vertical-align:top;
+            "
+          >
 
-    .join("");
+            <img
+              src="${src}"
+              style="
+                width:140px;
+                height:100px;
+                object-fit:cover;
+                border-radius:10px;
+                border:2px solid #ddd;
+              "
+            >
+
+            <button
+              type="button"
+              onclick="removePhoto(${index})"
+              style="
+                background:#e64b4b;
+                color:white;
+                border:none;
+                padding:6px;
+                border-radius:6px;
+                cursor:pointer;
+              "
+            >
+              🗑️ Supprimer
+            </button>
+
+          </div>
+
+        `;
+
+      })
+      .join("");
 
 }
 
@@ -300,6 +467,23 @@ function preview() {
 ========================= */
 
 function removePhoto(index) {
+
+  const photo =
+    selectedPhotos[index];
+
+
+  if (
+    photo &&
+    photo.type === "new" &&
+    photo.preview
+  ) {
+
+    URL.revokeObjectURL(
+      photo.preview
+    );
+
+  }
+
 
   selectedPhotos.splice(index, 1);
 
@@ -316,42 +500,103 @@ $("carForm").onsubmit = async e => {
 
   e.preventDefault();
 
-  const editId = $("editId").value;
 
-  const old = cars.find(
-    c => String(c.id) === String(editId)
-  );
+  const editId =
+    $("editId").value;
 
 
-  const car = {
-
-    brand: $("brand").value.trim(),
-
-    model: $("model").value.trim(),
-
-    price: $("price").value.trim(),
-
-    year: Number($("year").value),
-
-    km: $("km").value.trim(),
-
-    fuel: $("carFuel").value,
-
-    gear: $("gear").value.trim(),
-
-    location: $("location").value.trim(),
-
-    description: $("description").value.trim(),
-
-    photos:
-      selectedPhotos.length
-        ? selectedPhotos
-        : old?.photos || []
-
-  };
+  const old =
+    cars.find(
+      c => String(c.id) === String(editId)
+    );
 
 
   try {
+
+    /*
+      Les anciennes URLs sont conservées.
+      Les nouvelles photos seront uploadées
+      dans Supabase Storage.
+    */
+
+    const finalPhotos = [];
+
+    const newlyUploaded = [];
+
+
+    /*
+      UPLOAD DES PHOTOS
+    */
+
+    for (const photo of selectedPhotos) {
+
+      if (photo.type === "existing") {
+
+        finalPhotos.push(
+          photo.url
+        );
+
+        continue;
+
+      }
+
+
+      if (photo.type === "new") {
+
+        const uploaded =
+          await uploadPhoto(
+            photo.file
+          );
+
+
+        finalPhotos.push(
+          uploaded.url
+        );
+
+
+        newlyUploaded.push(
+          uploaded.url
+        );
+
+      }
+
+    }
+
+
+    const car = {
+
+      brand:
+        $("brand").value.trim(),
+
+      model:
+        $("model").value.trim(),
+
+      price:
+        $("price").value.trim(),
+
+      year:
+        Number($("year").value),
+
+      km:
+        $("km").value.trim(),
+
+      fuel:
+        $("carFuel").value,
+
+      gear:
+        $("gear").value.trim(),
+
+      location:
+        $("location").value.trim(),
+
+      description:
+        $("description").value.trim(),
+
+      photos:
+        finalPhotos
+
+    };
+
 
     let response;
 
@@ -374,15 +619,19 @@ $("carForm").onsubmit = async e => {
 
             apikey: SUPABASE_KEY,
 
-            Authorization: `Bearer ${SUPABASE_KEY}`,
+            Authorization:
+              `Bearer ${SUPABASE_KEY}`,
 
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
 
-            Prefer: "return=minimal"
+            Prefer:
+              "return=minimal"
 
           },
 
-          body: JSON.stringify(car)
+          body:
+            JSON.stringify(car)
 
         }
 
@@ -409,15 +658,19 @@ $("carForm").onsubmit = async e => {
 
             apikey: SUPABASE_KEY,
 
-            Authorization: `Bearer ${SUPABASE_KEY}`,
+            Authorization:
+              `Bearer ${SUPABASE_KEY}`,
 
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
 
-            Prefer: "return=minimal"
+            Prefer:
+              "return=minimal"
 
           },
 
-          body: JSON.stringify(car)
+          body:
+            JSON.stringify(car)
 
         }
 
@@ -428,11 +681,57 @@ $("carForm").onsubmit = async e => {
 
     if (!response.ok) {
 
-      const errorText = await response.text();
+      const errorText =
+        await response.text();
 
-      console.error(errorText);
 
-      throw new Error(errorText);
+      /*
+        Si l'annonce n'a pas été enregistrée,
+        on supprime les nouvelles photos
+        envoyées inutilement.
+      */
+
+      for (
+        const photoUrl of newlyUploaded
+      ) {
+
+        await deleteStoragePhoto(
+          photoUrl
+        );
+
+      }
+
+
+      throw new Error(
+        errorText
+      );
+
+    }
+
+
+    /*
+      Si on modifiait une annonce,
+      les anciennes photos retirées
+      peuvent être supprimées de Storage.
+    */
+
+    if (editId && old?.photos) {
+
+      for (
+        const oldPhoto of old.photos
+      ) {
+
+        if (
+          !finalPhotos.includes(oldPhoto)
+        ) {
+
+          await deleteStoragePhoto(
+            oldPhoto
+          );
+
+        }
+
+      }
 
     }
 
@@ -456,7 +755,8 @@ $("carForm").onsubmit = async e => {
     console.error(error);
 
     alert(
-      "Erreur lors de l'enregistrement de l'annonce."
+      "Erreur lors de l'enregistrement :\n\n" +
+      error.message
     );
 
   }
@@ -470,88 +770,90 @@ $("carForm").onsubmit = async e => {
 
 function renderAdmin() {
 
-  $("count").textContent = cars.length;
+  $("count").textContent =
+    cars.length;
 
 
-  $("adminCars").innerHTML = cars
+  $("adminCars").innerHTML =
 
-    .map(c => `
+    cars
+      .map(c => `
 
-      <div class="admin-car">
+        <div class="admin-car">
 
-        <div
-          style="
-            display:flex;
-            gap:12px;
-            align-items:center;
-          "
-        >
+          <div
+            style="
+              display:flex;
+              gap:12px;
+              align-items:center;
+            "
+          >
 
-          ${
-            c.photos?.[0]
+            ${
+              c.photos?.[0]
 
-              ? `
+                ? `
 
-                <img
-                  src="${c.photos[0]}"
-                  style="
-                    width:100px;
-                    height:75px;
-                    object-fit:cover;
-                    border-radius:10px;
-                  "
-                >
+                  <img
+                    src="${esc(c.photos[0])}"
+                    style="
+                      width:100px;
+                      height:75px;
+                      object-fit:cover;
+                      border-radius:10px;
+                    "
+                  >
 
-              `
+                `
 
-              : ""
+                : ""
 
-          }
+            }
 
 
-          <div>
+            <div>
 
-            <b>
-              ${esc(c.brand)} ${esc(c.model)}
-            </b>
+              <b>
+                ${esc(c.brand)}
+                ${esc(c.model)}
+              </b>
 
-            <br>
+              <br>
 
-            <span>
-              ${esc(c.price)}
-            </span>
+              <span>
+                ${esc(c.price)}
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="admin-actions">
+
+            <button
+              onclick="editCar('${esc(String(c.id))}')"
+            >
+              ✏️ Modifier
+            </button>
+
+
+            <button
+              onclick="deleteCar('${esc(String(c.id))}')"
+              style="
+                background:#e64b4b;
+                color:#fff;
+              "
+            >
+              🗑️ Supprimer
+            </button>
 
           </div>
 
         </div>
 
-
-        <div class="admin-actions">
-
-          <button
-            onclick="editCar('${c.id}')"
-          >
-            ✏️ Modifier
-          </button>
-
-
-          <button
-            onclick="deleteCar('${c.id}')"
-            style="
-              background:#e64b4b;
-              color:#fff;
-            "
-          >
-            🗑️ Supprimer
-          </button>
-
-        </div>
-
-      </div>
-
-    `)
-
-    .join("");
+      `)
+      .join("");
 
 }
 
@@ -562,38 +864,66 @@ function renderAdmin() {
 
 function editCar(id) {
 
-  const car = cars.find(
-    c => String(c.id) === String(id)
-  );
+  const car =
+    cars.find(
+      c => String(c.id) === String(id)
+    );
 
-  if (!car) return;
+
+  if (!car) {
+    return;
+  }
 
 
-  $("editId").value = car.id;
+  $("editId").value =
+    car.id;
 
-  $("brand").value = car.brand || "";
 
-  $("model").value = car.model || "";
+  $("brand").value =
+    car.brand || "";
 
-  $("price").value = car.price || "";
 
-  $("year").value = car.year || "";
+  $("model").value =
+    car.model || "";
 
-  $("km").value = car.km || "";
 
-  $("carFuel").value = car.fuel || "";
+  $("price").value =
+    car.price || "";
 
-  $("gear").value = car.gear || "";
 
-  $("location").value = car.location || "";
+  $("year").value =
+    car.year || "";
+
+
+  $("km").value =
+    car.km || "";
+
+
+  $("carFuel").value =
+    car.fuel || "";
+
+
+  $("gear").value =
+    car.gear || "";
+
+
+  $("location").value =
+    car.location || "";
+
 
   $("description").value =
     car.description || "";
 
 
-  selectedPhotos = Array.isArray(car.photos)
-    ? [...car.photos]
-    : [];
+  selectedPhotos =
+    Array.isArray(car.photos)
+
+      ? car.photos.map(url => ({
+          type: "existing",
+          url: url
+        }))
+
+      : [];
 
 
   preview();
@@ -625,43 +955,85 @@ async function deleteCar(id) {
       "Supprimer définitivement cette annonce ?"
     )
   ) {
+
     return;
+
   }
 
 
   try {
 
-    const response = await fetch(
+    const car =
+      cars.find(
+        c => String(c.id) === String(id)
+      );
 
-      `${API}?id=eq.${id}`,
 
-      {
+    /*
+      Supprimer l'annonce
+      de la table cars.
+    */
 
-        method: "DELETE",
+    const response =
+      await fetch(
 
-        headers: {
+        `${API}?id=eq.${id}`,
 
-          apikey: SUPABASE_KEY,
+        {
 
-          Authorization: `Bearer ${SUPABASE_KEY}`
+          method: "DELETE",
+
+          headers: {
+
+            apikey:
+              SUPABASE_KEY,
+
+            Authorization:
+              `Bearer ${SUPABASE_KEY}`
+
+          }
 
         }
 
-      }
-
-    );
+      );
 
 
     if (!response.ok) {
 
-      const errorText = await response.text();
+      const errorText =
+        await response.text();
 
-      throw new Error(errorText);
+      throw new Error(
+        errorText
+      );
 
     }
 
 
-    alert("Annonce supprimée avec succès !");
+    /*
+      Supprimer aussi ses photos
+      de Supabase Storage.
+    */
+
+    if (car?.photos) {
+
+      for (
+        const photo of car.photos
+      ) {
+
+        await deleteStoragePhoto(
+          photo
+        );
+
+      }
+
+    }
+
+
+    alert(
+      "Annonce supprimée avec succès !"
+    );
+
 
     await loadCars();
 
@@ -671,7 +1043,8 @@ async function deleteCar(id) {
     console.error(error);
 
     alert(
-      "Erreur lors de la suppression."
+      "Erreur lors de la suppression :\n\n" +
+      error.message
     );
 
   }
@@ -680,10 +1053,30 @@ async function deleteCar(id) {
 
 
 /* =========================
-   ANNULER / RÉINITIALISER
+   ANNULER
 ========================= */
 
 function reset() {
+
+  /*
+    Libérer les aperçus temporaires.
+  */
+
+  selectedPhotos.forEach(photo => {
+
+    if (
+      photo.type === "new" &&
+      photo.preview
+    ) {
+
+      URL.revokeObjectURL(
+        photo.preview
+      );
+
+    }
+
+  });
+
 
   $("carForm").reset();
 
@@ -693,13 +1086,15 @@ function reset() {
 
   preview();
 
+
   $("formTitle").textContent =
     "Ajouter un véhicule";
 
 }
 
 
-$("cancel").onclick = reset;
+$("cancel").onclick =
+  reset;
 
 
 /* =========================
@@ -708,7 +1103,9 @@ $("cancel").onclick = reset;
 
 function esc(value) {
 
-  return String(value ?? "").replace(
+  return String(
+    value ?? ""
+  ).replace(
 
     /[&<>"']/g,
 
