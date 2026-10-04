@@ -3,97 +3,529 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Pégase Automobile</title>
+
 <link rel="stylesheet" href="style.css">
+
+<style>
+
+/* =========================================================
+   FOND DE LA CONCESSION
+========================================================= */
+
+body {
+  background:
+    linear-gradient(
+      rgba(0, 0, 0, 0.55),
+      rgba(0, 0, 0, 0.55)
+    ),
+    url("pegase-bg.png") center center / cover fixed no-repeat;
+}
+
+
+/* =========================================================
+   INTRO
+========================================================= */
+
+#intro-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+
+  animation: introFade 4s ease forwards;
+}
+
+
+/* =========================================================
+   PETITE VOITURE
+========================================================= */
+
+#intro-car {
+  position: fixed;
+
+  z-index: 9999;
+
+  left: -220px;
+  bottom: 12%;
+
+  width: 180px;
+
+  pointer-events: none;
+
+  animation: carDrive 3.2s ease-in-out forwards;
+}
+
+
+/* La voiture traverse l'écran */
+
+@keyframes carDrive {
+
+  0% {
+    left: -220px;
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  80% {
+    left: 110%;
+    opacity: 1;
+  }
+
+  100% {
+    left: 120%;
+    opacity: 0;
+  }
+
+}
+
+
+/* =========================================================
+   DISPARITION DE L'ÉCRAN D'INTRO
+========================================================= */
+
+@keyframes introFade {
+
+  0% {
+    opacity: 1;
+  }
+
+  65% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+}
+
+
+/* =========================================================
+   ANNONCES
+========================================================= */
+
+#cars {
+  animation: carsAppear 1.2s ease 3s both;
+}
+
+
+@keyframes carsAppear {
+
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+}
+
+
+/* =========================================================
+   APPARITION DES VOITURES
+========================================================= */
+
+.car {
+  animation: carCardAppear 0.7s ease both;
+}
+
+
+.car:nth-child(1) {
+  animation-delay: 3.1s;
+}
+
+.car:nth-child(2) {
+  animation-delay: 3.25s;
+}
+
+.car:nth-child(3) {
+  animation-delay: 3.4s;
+}
+
+.car:nth-child(4) {
+  animation-delay: 3.55s;
+}
+
+.car:nth-child(5) {
+  animation-delay: 3.7s;
+}
+
+.car:nth-child(6) {
+  animation-delay: 3.85s;
+}
+
+
+@keyframes carCardAppear {
+
+  from {
+    opacity: 0;
+    transform: translateY(35px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+}
+
+
+/* =========================================================
+   LOGO / HERO
+========================================================= */
+
+.hero-content {
+  animation: heroAppear 1.2s ease 0.8s both;
+}
+
+
+@keyframes heroAppear {
+
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+
+  #intro-car {
+    width: 120px;
+    bottom: 15%;
+  }
+
+}
+
+</style>
+
 </head>
+
+
 <body>
-<div class="bg"></div>
+
+<!-- =====================================================
+     INTRO
+===================================================== -->
+
+<div id="intro-screen"></div>
+
+<img
+  id="intro-car"
+  src="pegase-car.png"
+  alt=""
+>
+
+
+<!-- =====================================================
+     HEADER
+===================================================== -->
 
 <header>
-  <a class="logo" href="index.html">♞ <span>PÉGASE</span> AUTOMOBILE</a>
+
+  <a class="logo" href="index.html">
+    ♞ <span>PÉGASE</span> AUTOMOBILE
+  </a>
+
   <nav>
-    <a href="#accueil">Accueil</a>
-    <a href="#vehicules">Véhicules</a>
-    <a href="#services">Services</a>
-    <a href="#contact">Contact</a>
+
+    <a href="#accueil">
+      Accueil
+    </a>
+
+    <a href="#vehicules">
+      Véhicules
+    </a>
+
+    <a href="#services">
+      Services
+    </a>
+
+    <a href="#contact">
+      Contact
+    </a>
+
   </nav>
+
 </header>
 
+
+<!-- =====================================================
+     ACCUEIL
+===================================================== -->
+
 <section id="accueil" class="hero">
+
   <div class="hero-content reveal">
-    <div class="badge">PÉGASE AUTOMOBILE</div>
-    <h1>L'automobile,<br><strong>autrement.</strong></h1>
-    <p>Découvrez nos véhicules d'occasion sélectionnés avec soin.</p>
-    <a class="btn gold" href="#vehicules">Voir les véhicules →</a>
+
+    <div class="badge">
+      PÉGASE AUTOMOBILE
+    </div>
+
+    <h1>
+      L'automobile,<br>
+      <strong>autrement.</strong>
+    </h1>
+
+    <p>
+      Découvrez nos véhicules d'occasion sélectionnés avec soin.
+    </p>
+
+    <a class="btn gold" href="#vehicules">
+      Voir les véhicules →
+    </a>
+
   </div>
-  <div class="scroll">DÉFILER ↓</div>
+
+  <div class="scroll">
+    DÉFILER ↓
+  </div>
+
 </section>
+
+
+<!-- =====================================================
+     VÉHICULES
+===================================================== -->
 
 <section id="vehicules" class="section">
+
   <div class="heading reveal">
-    <small>NOTRE STOCK</small>
-    <h2>Nos véhicules</h2>
-    <p>Retrouvez nos annonces disponibles.</p>
+
+    <small>
+      NOTRE STOCK
+    </small>
+
+    <h2>
+      Nos véhicules
+    </h2>
+
+    <p>
+      Retrouvez nos annonces disponibles.
+    </p>
+
   </div>
+
+
+  <!-- FILTRES -->
 
   <div class="filters">
-    <input id="search" placeholder="🔎 Rechercher une marque ou un modèle">
+
+    <input
+      id="search"
+      placeholder="🔎 Rechercher une marque ou un modèle"
+    >
+
     <select id="fuel">
-      <option value="">Tous les carburants</option>
-      <option>Essence</option>
-      <option>Diesel</option>
-      <option>Hybride</option>
-      <option>Électrique</option>
+
+      <option value="">
+        Tous les carburants
+      </option>
+
+      <option>
+        Essence
+      </option>
+
+      <option>
+        Diesel
+      </option>
+
+      <option>
+        Hybride
+      </option>
+
+      <option>
+        Électrique
+      </option>
+
     </select>
+
   </div>
+
+
+  <!-- ANNONCES -->
 
   <div id="cars" class="cars"></div>
-  <p id="empty" class="empty" hidden>Aucun véhicule trouvé.</p>
+
+
+  <p
+    id="empty"
+    class="empty"
+    hidden
+  >
+    Aucun véhicule trouvé.
+  </p>
+
 </section>
+
+
+<!-- =====================================================
+     SERVICES
+===================================================== -->
 
 <section id="services" class="section dark">
+
   <div class="heading reveal">
-    <small>NOTRE ENGAGEMENT</small>
-    <h2>Simple. Clair. Automobile.</h2>
+
+    <small>
+      NOTRE ENGAGEMENT
+    </small>
+
+    <h2>
+      Simple. Clair. Automobile.
+    </h2>
+
   </div>
+
 
   <div class="services">
-    <article>
-      <span>✦</span>
-      <h3>Sélection</h3>
-      <p>Des véhicules présentés avec leurs informations essentielles.</p>
-    </article>
+
 
     <article>
-      <span>◆</span>
-      <h3>Transparence</h3>
-      <p>Prix, kilométrage, année et motorisation affichés clairement.</p>
+
+      <span>
+        ✦
+      </span>
+
+      <h3>
+        Sélection
+      </h3>
+
+      <p>
+        Des véhicules présentés avec leurs informations essentielles.
+      </p>
+
     </article>
 
+
     <article>
-      <span>↗</span>
-      <h3>Contact direct</h3>
-      <p>Un bouton permet de joindre directement le vendeur.</p>
+
+      <span>
+        ◆
+      </span>
+
+      <h3>
+        Transparence
+      </h3>
+
+      <p>
+        Prix, kilométrage, année et motorisation affichés clairement.
+      </p>
+
     </article>
+
+
+    <article>
+
+      <span>
+        ↗
+      </span>
+
+      <h3>
+        Contact direct
+      </h3>
+
+      <p>
+        Un bouton permet de joindre directement le vendeur.
+      </p>
+
+    </article>
+
+
   </div>
+
 </section>
+
+
+<!-- =====================================================
+     CONTACT
+===================================================== -->
 
 <section id="contact" class="section contact">
+
   <div class="contact-box reveal">
-    <small>CONTACT</small>
-    <h2>Une voiture vous intéresse ?</h2>
-    <p>Appelez Pégase Automobile directement.</p>
-    <a class="btn green" href="tel:+33643486124">
+
+    <small>
+      CONTACT
+    </small>
+
+    <h2>
+      Une voiture vous intéresse ?
+    </h2>
+
+    <p>
+      Appelez Pégase Automobile directement.
+    </p>
+
+    <a
+      class="btn green"
+      href="tel:+33643486124"
+    >
       Mettre en relation avec le vendeur
     </a>
+
   </div>
+
 </section>
 
+
+<!-- =====================================================
+     FOOTER
+===================================================== -->
+
 <footer>
-  © <span id="year"></span> Pégase Automobile ·
-  <a href="admin.html">Administration</a>
+
+  © <span id="year"></span>
+  Pégase Automobile ·
+
+  <a href="admin.html">
+    Administration
+  </a>
+
 </footer>
 
+
+<!-- =====================================================
+     JAVASCRIPT
+===================================================== -->
+
 <script src="app.js"></script>
+
+
+<!-- =====================================================
+     ANNÉE
+===================================================== -->
+
+<script>
+
+  const yearElement = document.querySelector("#year");
+
+  if (yearElement) {
+    yearElement.textContent = new Date().getFullYear();
+  }
+
+</script>
+
+
 </body>
 </html>
