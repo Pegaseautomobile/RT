@@ -6,23 +6,32 @@ const API = `${SUPABASE_URL}/rest/v1/cars`;
 let allCars = [];
 
 /* =========================
-   CHARGER LES VOITURES
+   RÉCUPÉRER LES VOITURES
 ========================= */
 
 async function getCars() {
   try {
-    const response = await fetch(API, {
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`
+    const response = await fetch(
+      `${API}?select=*`,
+      {
+        method: "GET",
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json"
+        }
       }
-    });
+    );
 
     if (!response.ok) {
       throw new Error(await response.text());
     }
 
-    return await response.json();
+    const cars = await response.json();
+
+    console.log("Voitures récupérées :", cars);
+
+    return cars;
 
   } catch (error) {
     console.error("Erreur Supabase :", error);
@@ -30,43 +39,74 @@ async function getCars() {
   }
 }
 
+
 /* =========================
    AFFICHER LES VOITURES
 ========================= */
 
 async function render() {
 
-  const q = (
-    document.querySelector("#search")?.value || ""
-  ).toLowerCase();
+  const searchInput = document.querySelector("#search");
+  const fuelSelect = document.querySelector("#fuel");
 
-  const f =
-    document.querySelector("#fuel")?.value || "";
+  const q = (searchInput?.value || "").toLowerCase().trim();
+  const f = fuelSelect?.value || "";
 
   allCars = await getCars();
 
-  const list = allCars.filter(car =>
-    `${car.brand} ${car.model}`
-      .toLowerCase()
-      .includes(q) &&
-    (!f || car.fuel === f)
-  );
+  const list = allCars.filter(car => {
+
+    const name = `${car.brand || ""} ${car.model || ""}`.toLowerCase();
+
+    return (
+      name.includes(q) &&
+      (!f || car.fuel === f)
+    );
+  });
 
   const box = document.querySelector("#cars");
 
-  if (!box) return;
+  if (!box) {
+    console.error("Élément #cars introuvable dans index.html");
+    return;
+  }
 
   box.innerHTML = list.map(car => {
 
-    const photos =
-      Array.isArray(car.photos)
-        ? car.photos.filter(Boolean)
-        : [];
+    /*
+      Supabase peut parfois renvoyer photos sous forme
+      de tableau OU de chaîne JSON.
+      On gère les deux cas.
+    */
 
-    const firstPhoto =
-      photos.length > 0
-        ? photos[0]
-        : "";
+    let photos = [];
+
+    if (Array.isArray(car.photos)) {
+
+      photos = car.photos.filter(Boolean);
+
+    } else if (typeof car.photos === "string") {
+
+      try {
+
+        const parsed = JSON.parse(car.photos);
+
+        if (Array.isArray(parsed)) {
+          photos = parsed.filter(Boolean);
+        } else if (parsed) {
+          photos = [parsed];
+        }
+
+      } catch {
+
+        // Si la chaîne contient directement une URL
+        if (car.photos.startsWith("http")) {
+          photos = [car.photos];
+        }
+      }
+    }
+
+    const firstPhoto = photos[0] || "";
 
     return `
       <article
@@ -85,6 +125,7 @@ async function render() {
 
           ${
             firstPhoto
+
               ? `
                 <img
                   src="${esc(firstPhoto)}"
@@ -95,37 +136,59 @@ async function render() {
                     object-fit:cover;
                     display:block;
                   "
+                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                 >
+
+                <div
+                  style="
+                    display:none;
+                    width:100%;
+                    height:100%;
+                    align-items:center;
+                    justify-content:center;
+                    background:#111;
+                    color:#aaa;
+                  "
+                >
+                  Impossible de charger la photo
+                </div>
 
                 ${
                   photos.length > 1
+
                     ? `
-                      <div style="
-                        position:absolute;
-                        bottom:10px;
-                        right:10px;
-                        background:rgba(0,0,0,.75);
-                        color:white;
-                        padding:6px 10px;
-                        border-radius:20px;
-                        font-size:13px;
-                      ">
+                      <div
+                        style="
+                          position:absolute;
+                          bottom:10px;
+                          right:10px;
+                          background:rgba(0,0,0,.75);
+                          color:white;
+                          padding:6px 10px;
+                          border-radius:20px;
+                          font-size:13px;
+                        "
+                      >
                         📷 ${photos.length} photos
                       </div>
                     `
+
                     : ""
                 }
               `
+
               : `
-                <div style="
-                  width:100%;
-                  height:100%;
-                  display:flex;
-                  align-items:center;
-                  justify-content:center;
-                  background:#111;
-                  color:#aaa;
-                ">
+                <div
+                  style="
+                    width:100%;
+                    height:100%;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    background:#111;
+                    color:#aaa;
+                  "
+                >
                   Aucune photo
                 </div>
               `
@@ -144,11 +207,36 @@ async function render() {
           </div>
 
           <div class="meta">
-            <span>${esc(car.year)}</span>
-            <span>${esc(car.km)}</span>
-            <span>${esc(car.fuel)}</span>
-            <span>${esc(car.gear || "")}</span>
+
+            <span>
+              ${esc(car.year)}
+            </span>
+
+            <span>
+              ${esc(car.km)}
+            </span>
+
+            <span>
+              ${esc(car.fuel)}
+            </span>
+
+            <span>
+              ${esc(car.gear || "")}
+            </span>
+
           </div>
+
+          ${
+            car.location
+
+              ? `
+                <div class="location">
+                  📍 ${esc(car.location)}
+                </div>
+              `
+
+              : ""
+          }
 
           <p>
             ${esc(car.description || "")}
@@ -169,52 +257,53 @@ async function render() {
 
   }).join("");
 
+
   /* =========================
-     CLIC SUR L'ANNONCE ENTIÈRE
+     CLIC SUR UNE VOITURE
   ========================= */
 
-  document
-    .querySelectorAll(".car")
-    .forEach(card => {
+  document.querySelectorAll(".car").forEach(card => {
 
-      card.addEventListener("click", event => {
+    card.addEventListener("click", event => {
 
-        /*
-          Si on clique sur le bouton téléphone,
-          on ne change pas de page.
-        */
-        if (
-          event.target.closest("a") ||
-          event.target.closest("button")
-        ) {
-          return;
-        }
+      if (
+        event.target.closest("a") ||
+        event.target.closest("button")
+      ) {
+        return;
+      }
 
-        const id =
-          card.dataset.carId;
+      const id = card.dataset.carId;
 
-        if (!id) return;
+      if (!id) return;
 
-        window.location.href =
-          `voiture.html?id=${encodeURIComponent(id)}`;
-
-      });
+      window.location.href =
+        `voiture.html?id=${encodeURIComponent(id)}`;
 
     });
 
-  const empty =
-    document.querySelector("#empty");
+  });
+
+
+  /* =========================
+     MESSAGE AUCUNE ANNONCE
+  ========================= */
+
+  const empty = document.querySelector("#empty");
 
   if (empty) {
     empty.hidden = list.length > 0;
   }
+
 }
 
+
 /* =========================
-   PROTECTION DU TEXTE
+   SÉCURISER L'AFFICHAGE
 ========================= */
 
 function esc(value) {
+
   return String(value ?? "").replace(
     /[&<>"']/g,
     char => ({
@@ -225,7 +314,9 @@ function esc(value) {
       "'": "&#039;"
     }[char])
   );
+
 }
+
 
 /* =========================
    RECHERCHE
@@ -235,6 +326,7 @@ document
   .querySelector("#search")
   ?.addEventListener("input", render);
 
+
 /* =========================
    FILTRE CARBURANT
 ========================= */
@@ -243,20 +335,20 @@ document
   .querySelector("#fuel")
   ?.addEventListener("change", render);
 
+
 /* =========================
-   ANNÉE
+   ANNÉE DU FOOTER
 ========================= */
 
-const year =
-  document.querySelector("#year");
+const year = document.querySelector("#year");
 
 if (year) {
-  year.textContent =
-    new Date().getFullYear();
+  year.textContent = new Date().getFullYear();
 }
 
+
 /* =========================
-   LANCEMENT
+   LANCER LE SITE
 ========================= */
 
 render();
