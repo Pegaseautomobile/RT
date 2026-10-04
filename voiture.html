@@ -1,30 +1,22 @@
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
-
 <meta charset="UTF-8">
-
 <meta
   name="viewport"
   content="width=device-width,initial-scale=1"
 >
-
 <title>Véhicule — Pégase Automobile</title>
-
 <link
   rel="stylesheet"
   href="style.css"
 >
-
 <style>
-
 .vehicle-page {
   max-width: 1100px;
   margin: 40px auto;
   padding: 20px;
 }
-
 .vehicle-back {
   display: inline-block;
   margin-bottom: 25px;
@@ -32,14 +24,12 @@
   text-decoration: none;
   font-weight: bold;
 }
-
 .vehicle-card {
   background: rgba(20,20,20,.95);
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 15px 50px rgba(0,0,0,.35);
 }
-
 .vehicle-gallery {
   position: relative;
   background: #080808;
@@ -48,14 +38,12 @@
   align-items: center;
   justify-content: center;
 }
-
 .vehicle-gallery img {
   width: 100%;
   height: 500px;
   object-fit: contain;
   display: block;
 }
-
 .gallery-button {
   position: absolute;
   top: 50%;
@@ -70,19 +58,15 @@
   font-size: 35px;
   cursor: pointer;
 }
-
 .gallery-button:hover {
   background: rgba(255,255,255,.3);
 }
-
 #prevPhoto {
   left: 20px;
 }
-
 #nextPhoto {
   right: 20px;
 }
-
 .photo-counter {
   position: absolute;
   top: 20px;
@@ -93,40 +77,33 @@
   padding: 7px 14px;
   border-radius: 20px;
 }
-
 .vehicle-content {
   padding: 30px;
 }
-
 .vehicle-title {
   font-size: 32px;
   margin: 0 0 10px;
 }
-
 .vehicle-price {
   font-size: 28px;
   font-weight: bold;
   margin-bottom: 25px;
 }
-
 .vehicle-info {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   margin-bottom: 25px;
 }
-
 .vehicle-info div {
   padding: 15px;
   background: rgba(255,255,255,.06);
   border-radius: 12px;
 }
-
 .vehicle-description {
   line-height: 1.7;
   margin-bottom: 25px;
 }
-
 .vehicle-contact {
   display: inline-block;
   background: #16a34a;
@@ -136,75 +113,56 @@
   border-radius: 30px;
   font-weight: bold;
 }
-
 .vehicle-contact:hover {
   opacity: .9;
 }
-
 .no-photo {
   color: #aaa;
   font-size: 18px;
 }
-
 .error-message {
   text-align: center;
   padding: 60px 20px;
 }
-
 @media (max-width: 600px) {
-
   .vehicle-page {
     margin: 20px auto;
     padding: 12px;
   }
-
   .vehicle-gallery {
     min-height: 300px;
   }
-
   .vehicle-gallery img {
     height: 300px;
   }
-
   .vehicle-content {
     padding: 20px;
   }
-
   .vehicle-title {
     font-size: 25px;
   }
-
   .vehicle-info {
     grid-template-columns: 1fr;
   }
-
   .gallery-button {
     width: 45px;
     height: 45px;
     font-size: 28px;
   }
-
 }
-
 </style>
-
 </head>
-
 <body>
-
 <div class="vehicle-page">
-
   <a
     href="index.html"
     class="vehicle-back"
   >
     ← Retour aux annonces
   </a>
-
   <div id="loading">
     Chargement du véhicule...
   </div>
-
   <div
     id="error"
     class="error-message"
@@ -212,160 +170,105 @@
   >
     Véhicule introuvable.
   </div>
-
   <article
     id="vehicle"
     class="vehicle-card"
     hidden
   >
-
     <div class="vehicle-gallery">
-
       <button
         id="prevPhoto"
         class="gallery-button"
       >
         ‹
       </button>
-
       <img
         id="vehiclePhoto"
         alt=""
       >
-
       <button
         id="nextPhoto"
         class="gallery-button"
       >
         ›
       </button>
-
       <div
         id="photoCounter"
         class="photo-counter"
       ></div>
-
     </div>
-
     <div class="vehicle-content">
-
       <h1
         id="vehicleTitle"
         class="vehicle-title"
       ></h1>
-
       <div
         id="vehiclePrice"
         class="vehicle-price"
       ></div>
-
       <div class="vehicle-info">
-
         <div>
           📅 <strong>Année</strong><br>
           <span id="vehicleYear"></span>
         </div>
-
         <div>
           🛣️ <strong>Kilométrage</strong><br>
           <span id="vehicleKm"></span>
         </div>
-
         <div>
           ⛽ <strong>Carburant</strong><br>
           <span id="vehicleFuel"></span>
         </div>
-
         <div>
           ⚙️ <strong>Boîte</strong><br>
           <span id="vehicleGear"></span>
         </div>
-
         <div>
           📍 <strong>Localisation</strong><br>
           <span id="vehicleLocation"></span>
         </div>
-
       </div>
-
       <h2>Description</h2>
-
       <p
         id="vehicleDescription"
         class="vehicle-description"
       ></p>
-
       <a
         class="vehicle-contact"
         href="tel:+33643486124"
       >
         📞 Mettre en relation avec le vendeur
       </a>
-
     </div>
-
   </article>
-
 </div>
-
 <script>
-
 const SUPABASE_URL =
   "https://lkuptpgposnungotdsbk.supabase.co";
-
 const SUPABASE_KEY =
   "sb_publishable_AWd0zD__eW-fZ4R-gzyhTw_82mwVbSk";
-
 const API =
   `${SUPABASE_URL}/rest/v1/cars`;
-
 let photos = [];
 let currentPhoto = 0;
-
 /* =========================
    RÉCUPÉRER L'ID
 ========================= */
-
 const params =
   new URLSearchParams(
     window.location.search
   );
-
 const carId =
   params.get("id");
-
-/* =========================
-   PROTECTION TEXTE
-========================= */
-
-function esc(value) {
-
-  return String(value ?? "").replace(
-    /[&<>"']/g,
-    char => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;"
-    }[char])
-  );
-
-}
-
 /* =========================
    CHARGER LE VÉHICULE
 ========================= */
-
 async function loadVehicle() {
-
   if (!carId) {
     showError();
     return;
   }
-
   try {
-
     const response =
       await fetch(
         `${API}?id=eq.${encodeURIComponent(carId)}&limit=1`,
@@ -377,207 +280,173 @@ async function loadVehicle() {
           }
         }
       );
-
     if (!response.ok) {
       throw new Error(
         await response.text()
       );
     }
-
     const data =
       await response.json();
-
     if (!data.length) {
       showError();
       return;
     }
-
     const car =
       data[0];
-
+    console.log("Véhicule récupéré :", car);
     displayVehicle(car);
-
   } catch (error) {
-
-    console.error(error);
-
+    console.error(
+      "Erreur lors du chargement du véhicule :",
+      error
+    );
     showError();
-
   }
-
 }
-
 /* =========================
    AFFICHER LE VÉHICULE
 ========================= */
-
 function displayVehicle(car) {
-
   document.title =
-    `${car.brand} ${car.model} — Pégase Automobile`;
-
+    `${car.brand || ""} ${car.model || ""} — Pégase Automobile`;
   document.querySelector("#loading").hidden = true;
-
   document.querySelector("#vehicle").hidden = false;
-
   document.querySelector("#vehicleTitle").textContent =
     `${car.brand || ""} ${car.model || ""}`;
-
   document.querySelector("#vehiclePrice").textContent =
     car.price || "";
-
   document.querySelector("#vehicleYear").textContent =
     car.year || "";
-
   document.querySelector("#vehicleKm").textContent =
     car.km || "";
-
   document.querySelector("#vehicleFuel").textContent =
     car.fuel || "";
-
   document.querySelector("#vehicleGear").textContent =
     car.gear || "";
-
   document.querySelector("#vehicleLocation").textContent =
     car.location || "";
-
   document.querySelector("#vehicleDescription").textContent =
     car.description || "Aucune description.";
-
-  photos =
-    Array.isArray(car.photos)
-      ? car.photos.filter(Boolean)
-      : [];
-
+  /* =========================
+     RÉCUPÉRER LES PHOTOS
+  ========================= */
+  photos = [];
+  if (Array.isArray(car.photos)) {
+    photos =
+      car.photos.filter(
+        photo =>
+          typeof photo === "string" &&
+          photo.trim() !== ""
+      );
+  } else if (typeof car.photos === "string") {
+    const value =
+      car.photos.trim();
+    try {
+      const parsed =
+        JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        photos =
+          parsed.filter(
+            photo =>
+              typeof photo === "string" &&
+              photo.trim() !== ""
+          );
+      } else if (
+        typeof parsed === "string" &&
+        parsed.startsWith("http")
+      ) {
+        photos = [parsed];
+      }
+    } catch {
+      if (value.startsWith("http")) {
+        photos = [value];
+      }
+    }
+  }
+  console.log("Photos trouvées :", photos);
   currentPhoto = 0;
-
   updatePhoto();
-
 }
-
 /* =========================
-   PHOTO
+   AFFICHER LA PHOTO
 ========================= */
-
 function updatePhoto() {
-
   const image =
     document.querySelector("#vehiclePhoto");
-
   const counter =
     document.querySelector("#photoCounter");
-
   const previous =
     document.querySelector("#prevPhoto");
-
   const next =
     document.querySelector("#nextPhoto");
-
   if (!photos.length) {
-
     image.style.display = "none";
-
     counter.textContent =
       "Aucune photo";
-
     previous.style.display =
       "none";
-
     next.style.display =
       "none";
-
     return;
   }
-
   image.style.display =
     "block";
-
   image.src =
     photos[currentPhoto];
-
   image.alt =
     "Photo du véhicule";
-
   counter.textContent =
     `${currentPhoto + 1} / ${photos.length}`;
-
   if (photos.length <= 1) {
-
     previous.style.display =
       "none";
-
     next.style.display =
       "none";
-
   } else {
-
     previous.style.display =
       "block";
-
     next.style.display =
       "block";
   }
-
 }
-
 /* =========================
    PHOTO PRÉCÉDENTE
 ========================= */
-
 document
   .querySelector("#prevPhoto")
   .onclick = () => {
-
     if (!photos.length) return;
-
     currentPhoto--;
-
     if (currentPhoto < 0) {
       currentPhoto =
         photos.length - 1;
     }
-
     updatePhoto();
   };
-
 /* =========================
    PHOTO SUIVANTE
 ========================= */
-
 document
   .querySelector("#nextPhoto")
   .onclick = () => {
-
     if (!photos.length) return;
-
     currentPhoto++;
-
     if (currentPhoto >= photos.length) {
       currentPhoto = 0;
     }
-
     updatePhoto();
   };
-
 /* =========================
    ERREUR
 ========================= */
-
 function showError() {
-
   document.querySelector("#loading").hidden = true;
-
   document.querySelector("#error").hidden = false;
-
 }
-
 /* =========================
    LANCEMENT
 ========================= */
-
 loadVehicle();
-
 </script>
-
 </body>
 </html>
