@@ -111,10 +111,6 @@
 .vehicle-contact:hover {
   opacity: .9;
 }
-.no-photo {
-  color: #aaa;
-  font-size: 18px;
-}
 .error-message {
   text-align: center;
   padding: 60px 20px;
@@ -160,18 +156,38 @@
   </div>
   <article id="vehicle" class="vehicle-card" hidden>
 <div class="vehicle-gallery">
-  <button id="prevPhoto" class="gallery-button">
+  <button
+    id="prevPhoto"
+    class="gallery-button"
+    type="button"
+  >
     ‹
   </button>
-  <img id="vehiclePhoto" alt="Photo du véhicule">
-  <button id="nextPhoto" class="gallery-button">
+  <img
+    id="vehiclePhoto"
+    alt="Photo du véhicule"
+  >
+  <button
+    id="nextPhoto"
+    class="gallery-button"
+    type="button"
+  >
     ›
   </button>
-  <div id="photoCounter" class="photo-counter"></div>
+  <div
+    id="photoCounter"
+    class="photo-counter"
+  ></div>
 </div>
 <div class="vehicle-content">
-  <h1 id="vehicleTitle" class="vehicle-title"></h1>
-  <div id="vehiclePrice" class="vehicle-price"></div>
+  <h1
+    id="vehicleTitle"
+    class="vehicle-title"
+  ></h1>
+  <div
+    id="vehiclePrice"
+    class="vehicle-price"
+  ></div>
   <div class="vehicle-info">
     <div>
       📅 <strong>Année</strong><br>
@@ -195,7 +211,10 @@
     </div>
   </div>
   <h2>Description</h2>
-  <p id="vehicleDescription" class="vehicle-description"></p>
+  <p
+    id="vehicleDescription"
+    class="vehicle-description"
+  ></p>
   <a
     class="vehicle-contact"
     href="tel:+33643486124"
@@ -218,63 +237,34 @@ const params =
   new URLSearchParams(window.location.search);
 const carId =
   params.get("id");
-async function loadVehicle() {
-  if (!carId) {
-    showError();
-    return;
-  }
-  try {
-    const response = await fetch(
-      `${API}?select=*&id=eq.${encodeURIComponent(carId)}&limit=1`,
-      {
-        method: "GET",
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-    if (!response.ok) {
-      throw new Error(await response.text());
-    }
-    const data = await response.json();
-    console.log("Véhicule récupéré :", data);
-    if (!data.length) {
-      showError();
-      return;
-    }
-    displayVehicle(data[0]);
-  } catch (error) {
-    console.error("Erreur :", error);
-    showError();
-  }
-}
+/* =========================
+   RÉCUPÉRATION DES PHOTOS
+========================= */
 function getPhotos(value) {
   if (!value) {
     return [];
   }
-  // Cas normal : Supabase renvoie directement un tableau
+  // Supabase renvoie normalement directement un tableau
   if (Array.isArray(value)) {
     return value
-      .filter(photo => typeof photo === "string")
-      .map(photo => photo.trim())
-      .filter(Boolean);
+      .map(photo => String(photo).trim())
+      .filter(photo => photo.startsWith("http"));
   }
-  // Cas où Supabase renvoie une chaîne
+  // Si les photos arrivent sous forme de texte
   if (typeof value === "string") {
     const text = value.trim();
     if (!text) {
       return [];
     }
-    // Tableau JSON : ["url1","url2"]
+    // Exemple :
+    // ["https://photo.jpg"]
     try {
-      const parsed = JSON.parse(text);
+      const parsed =
+        JSON.parse(text);
       if (Array.isArray(parsed)) {
         return parsed
-          .filter(photo => typeof photo === "string")
-          .map(photo => photo.trim())
-          .filter(Boolean);
+          .map(photo => String(photo).trim())
+          .filter(photo => photo.startsWith("http"));
       }
       if (
         typeof parsed === "string" &&
@@ -283,13 +273,14 @@ function getPhotos(value) {
         return [parsed];
       }
     } catch (error) {
-      // On continue avec les autres formats
+      // On continue
     }
     // Une seule URL
     if (text.startsWith("http")) {
       return [text];
     }
-    // Format PostgreSQL possible : {url1,url2}
+    // Format PostgreSQL :
+    // {https://photo1.jpg,https://photo2.jpg}
     if (
       text.startsWith("{") &&
       text.endsWith("}")
@@ -308,20 +299,96 @@ function getPhotos(value) {
         );
     }
     // Dernier secours :
-    // récupère toutes les URL présentes dans le texte
+    // cherche toutes les URL présentes
     const matches =
-      text.match(/https?:\/\/[^\s"'\\\]]+/g);
+      text.match(/https?:\/\/[^\s"'\\\]}]+/g);
     if (matches) {
       return matches;
     }
   }
   return [];
 }
+/* =========================
+   CHARGER LE VÉHICULE
+========================= */
+async function loadVehicle() {
+  if (!carId) {
+    showError();
+    return;
+  }
+  try {
+    /*
+      On récupère TOUTES les voitures,
+      exactement comme sur index.html.
+      Ensuite on cherche celle qui possède
+      le même ID.
+    */
+    const response =
+      await fetch(
+        `${API}?select=*`,
+        {
+          method: "GET",
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization:
+              `Bearer ${SUPABASE_KEY}`,
+            "Content-Type":
+              "application/json"
+          }
+        }
+      );
+    if (!response.ok) {
+      throw new Error(
+        await response.text()
+      );
+    }
+    const cars =
+      await response.json();
+    console.log(
+      "Voitures récupérées :",
+      cars
+    );
+    /*
+      Comparaison en texte pour éviter
+      les problèmes UUID / nombre / texte.
+    */
+    const car =
+      cars.find(
+        vehicle =>
+          String(vehicle.id) ===
+          String(carId)
+      );
+    if (!car) {
+      console.error(
+        "Annonce introuvable. ID recherché :",
+        carId
+      );
+      showError();
+      return;
+    }
+    console.log(
+      "Annonce trouvée :",
+      car
+    );
+    displayVehicle(car);
+  } catch (error) {
+    console.error(
+      "Erreur Supabase :",
+      error
+    );
+    showError();
+  }
+}
+/* =========================
+   AFFICHER LE VÉHICULE
+========================= */
 function displayVehicle(car) {
   document.title =
     `${car.brand || ""} ${car.model || ""} — Pégase Automobile`;
-  document.querySelector("#loading").hidden = true;
-  document.querySelector("#vehicle").hidden = false;
+  document.querySelector("#loading").hidden =
+    true;
+  document.querySelector("#vehicle").hidden =
+    false;
   document.querySelector("#vehicleTitle").textContent =
     `${car.brand || ""} ${car.model || ""}`;
   document.querySelector("#vehiclePrice").textContent =
@@ -337,23 +404,48 @@ function displayVehicle(car) {
   document.querySelector("#vehicleLocation").textContent =
     car.location || "";
   document.querySelector("#vehicleDescription").textContent =
-    car.description || "Aucune description.";
-  photos = getPhotos(car.photos);
-  console.log("Photos trouvées :", photos);
+    car.description ||
+    "Aucune description.";
+  /*
+    IMPORTANT :
+    récupération robuste des photos
+  */
+  photos =
+    getPhotos(car.photos);
+  console.log(
+    "PHOTOS DE L'ANNONCE :",
+    car.photos
+  );
+  console.log(
+    "PHOTOS UTILISÉES :",
+    photos
+  );
   currentPhoto = 0;
   updatePhoto();
 }
+/* =========================
+   AFFICHER UNE PHOTO
+========================= */
 function updatePhoto() {
   const image =
-    document.querySelector("#vehiclePhoto");
+    document.querySelector(
+      "#vehiclePhoto"
+    );
   const counter =
-    document.querySelector("#photoCounter");
+    document.querySelector(
+      "#photoCounter"
+    );
   const previous =
-    document.querySelector("#prevPhoto");
+    document.querySelector(
+      "#prevPhoto"
+    );
   const next =
-    document.querySelector("#nextPhoto");
+    document.querySelector(
+      "#nextPhoto"
+    );
   if (!photos.length) {
-    image.style.display = "none";
+    image.style.display =
+      "none";
     counter.textContent =
       "Aucune photo";
     previous.style.display =
@@ -370,6 +462,12 @@ function updatePhoto() {
     "Photo du véhicule";
   counter.textContent =
     `${currentPhoto + 1} / ${photos.length}`;
+  /*
+    Si une seule photo :
+    pas de flèches.
+    Si plusieurs :
+    flèches activées.
+  */
   if (photos.length <= 1) {
     previous.style.display =
       "none";
@@ -382,30 +480,60 @@ function updatePhoto() {
       "block";
   }
 }
+/* =========================
+   PHOTO PRÉCÉDENTE
+========================= */
 document
   .querySelector("#prevPhoto")
-  .addEventListener("click", () => {
-    if (!photos.length) return;
-    currentPhoto--;
-    if (currentPhoto < 0) {
-      currentPhoto = photos.length - 1;
+  .addEventListener(
+    "click",
+    () => {
+      if (!photos.length) {
+        return;
+      }
+      currentPhoto--;
+      if (currentPhoto < 0) {
+        currentPhoto =
+          photos.length - 1;
+      }
+      updatePhoto();
     }
-    updatePhoto();
-  });
+  );
+/* =========================
+   PHOTO SUIVANTE
+========================= */
 document
   .querySelector("#nextPhoto")
-  .addEventListener("click", () => {
-    if (!photos.length) return;
-    currentPhoto++;
-    if (currentPhoto >= photos.length) {
-      currentPhoto = 0;
+  .addEventListener(
+    "click",
+    () => {
+      if (!photos.length) {
+        return;
+      }
+      currentPhoto++;
+      if (
+        currentPhoto >=
+        photos.length
+      ) {
+        currentPhoto = 0;
+      }
+      updatePhoto();
     }
-    updatePhoto();
-  });
+  );
+/* =========================
+   ERREUR
+========================= */
 function showError() {
-  document.querySelector("#loading").hidden = true;
-  document.querySelector("#error").hidden = false;
+  document.querySelector(
+    "#loading"
+  ).hidden = true;
+  document.querySelector(
+    "#error"
+  ).hidden = false;
 }
+/* =========================
+   DÉMARRAGE
+========================= */
 loadVehicle();
 </script>
 </body>
