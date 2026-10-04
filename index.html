@@ -10,92 +10,235 @@
 
 <style>
 
-/* =========================================================
-   FOND DE LA CONCESSION
-========================================================= */
+/* =====================================================
+   FOND ANIMÉ
+===================================================== */
 
 body {
-  background:
-    linear-gradient(
-      rgba(0, 0, 0, 0.55),
-      rgba(0, 0, 0, 0.55)
-    ),
-    url("pegase-bg.png") center center / cover fixed no-repeat;
+  overflow-x: hidden;
 }
 
 
-/* =========================================================
+/* =====================================================
    INTRO
-========================================================= */
+===================================================== */
 
-#intro-screen {
+#intro {
   position: fixed;
   inset: 0;
-  z-index: 9998;
-  background: rgba(0, 0, 0, 0.45);
+  z-index: 99999;
+  background:
+    radial-gradient(circle at center, rgba(30,40,55,.9), rgba(0,0,0,1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
   pointer-events: none;
-
-  animation: introFade 4s ease forwards;
+  animation: introOut 4.5s ease forwards;
 }
 
 
-/* =========================================================
-   PETITE VOITURE
-========================================================= */
+/* =====================================================
+   LOGO INTRO
+===================================================== */
+
+#intro-logo {
+  position: absolute;
+  top: 35%;
+  color: white;
+  text-align: center;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  opacity: 0;
+  animation: logoIn 1.2s ease forwards;
+}
+
+#intro-logo span {
+  color: #d4af37;
+}
+
+
+/* =====================================================
+   VOITURE CSS
+===================================================== */
 
 #intro-car {
-  position: fixed;
+  position: absolute;
+  left: -180px;
+  bottom: 22%;
 
-  z-index: 9999;
+  width: 150px;
+  height: 55px;
 
-  left: -220px;
-  bottom: 12%;
-
-  width: 180px;
-
-  pointer-events: none;
-
-  animation: carDrive 3.2s ease-in-out forwards;
+  animation: drive 3.2s ease-in-out forwards;
 }
 
 
-/* La voiture traverse l'écran */
+/* carrosserie */
 
-@keyframes carDrive {
+.car-body-intro {
+  position: absolute;
+  bottom: 10px;
+  left: 5px;
+
+  width: 140px;
+  height: 35px;
+
+  background: linear-gradient(
+    180deg,
+    #eeeeee 0%,
+    #777777 45%,
+    #222222 100%
+  );
+
+  border-radius: 18px 25px 8px 8px;
+
+  box-shadow:
+    0 5px 15px rgba(0,0,0,.7),
+    inset 0 2px 3px rgba(255,255,255,.6);
+}
+
+
+/* toit */
+
+.car-roof-intro {
+  position: absolute;
+  bottom: 42px;
+  left: 38px;
+
+  width: 70px;
+  height: 35px;
+
+  background: linear-gradient(
+    135deg,
+    #777,
+    #222
+  );
+
+  border-radius: 35px 35px 0 0;
+
+  transform: skewX(-12deg);
+}
+
+
+/* vitres */
+
+.car-window-intro {
+  position: absolute;
+  bottom: 46px;
+  left: 48px;
+
+  width: 25px;
+  height: 20px;
+
+  background: #07131f;
+
+  border: 2px solid #aaa;
+
+  transform: skewX(-12deg);
+
+  border-radius: 5px;
+}
+
+.car-window-intro.second {
+  left: 76px;
+}
+
+
+/* roues */
+
+.car-wheel-intro {
+  position: absolute;
+  bottom: 0;
+
+  width: 28px;
+  height: 28px;
+
+  background: #050505;
+
+  border: 5px solid #777;
+
+  border-radius: 50%;
+
+  box-shadow:
+    inset 0 0 0 5px #111;
+}
+
+.car-wheel-intro.left {
+  left: 25px;
+}
+
+.car-wheel-intro.right {
+  right: 18px;
+}
+
+
+/* phares */
+
+.car-light-intro {
+  position: absolute;
+  right: 1px;
+  bottom: 26px;
+
+  width: 9px;
+  height: 7px;
+
+  background: #fff4a3;
+
+  border-radius: 50%;
+
+  box-shadow:
+    0 0 12px #fff4a3;
+}
+
+
+/* =====================================================
+   ANIMATIONS
+===================================================== */
+
+@keyframes drive {
 
   0% {
-    left: -220px;
-    opacity: 0;
+    left: -180px;
   }
 
-  10% {
-    opacity: 1;
+  15% {
+    left: 10%;
   }
 
-  80% {
-    left: 110%;
-    opacity: 1;
+  75% {
+    left: 75%;
   }
 
   100% {
-    left: 120%;
-    opacity: 0;
+    left: 110%;
   }
 
 }
 
 
-/* =========================================================
-   DISPARITION DE L'ÉCRAN D'INTRO
-========================================================= */
+@keyframes logoIn {
 
-@keyframes introFade {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(.8);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+}
+
+
+@keyframes introOut {
 
   0% {
     opacity: 1;
   }
 
-  65% {
+  75% {
     opacity: 1;
   }
 
@@ -107,12 +250,41 @@ body {
 }
 
 
-/* =========================================================
-   ANNONCES
-========================================================= */
+/* =====================================================
+   APPARITION DU SITE
+===================================================== */
+
+header,
+.hero,
+#vehicules,
+#services,
+#contact,
+footer {
+  animation: siteAppear 1s ease 3.2s both;
+}
+
+
+@keyframes siteAppear {
+
+  from {
+    opacity: 0;
+    transform: translateY(25px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+}
+
+
+/* =====================================================
+   ANIMATION DES ANNONCES
+===================================================== */
 
 #cars {
-  animation: carsAppear 1.2s ease 3s both;
+  animation: carsAppear 1s ease 3.5s both;
 }
 
 
@@ -120,7 +292,7 @@ body {
 
   from {
     opacity: 0;
-    transform: translateY(50px);
+    transform: translateY(45px);
   }
 
   to {
@@ -131,88 +303,18 @@ body {
 }
 
 
-/* =========================================================
-   APPARITION DES VOITURES
-========================================================= */
-
-.car {
-  animation: carCardAppear 0.7s ease both;
-}
-
-
-.car:nth-child(1) {
-  animation-delay: 3.1s;
-}
-
-.car:nth-child(2) {
-  animation-delay: 3.25s;
-}
-
-.car:nth-child(3) {
-  animation-delay: 3.4s;
-}
-
-.car:nth-child(4) {
-  animation-delay: 3.55s;
-}
-
-.car:nth-child(5) {
-  animation-delay: 3.7s;
-}
-
-.car:nth-child(6) {
-  animation-delay: 3.85s;
-}
-
-
-@keyframes carCardAppear {
-
-  from {
-    opacity: 0;
-    transform: translateY(35px) scale(0.96);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-
-}
-
-
-/* =========================================================
-   LOGO / HERO
-========================================================= */
-
-.hero-content {
-  animation: heroAppear 1.2s ease 0.8s both;
-}
-
-
-@keyframes heroAppear {
-
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-}
-
-
-/* =========================================================
+/* =====================================================
    MOBILE
-========================================================= */
+===================================================== */
 
 @media (max-width: 600px) {
 
+  #intro-logo {
+    font-size: 25px;
+  }
+
   #intro-car {
-    width: 120px;
-    bottom: 15%;
+    transform: scale(.8);
   }
 
 }
@@ -224,17 +326,36 @@ body {
 
 <body>
 
+
 <!-- =====================================================
      INTRO
 ===================================================== -->
 
-<div id="intro-screen"></div>
+<div id="intro">
 
-<img
-  id="intro-car"
-  src="pegase-car.png"
-  alt=""
->
+  <div id="intro-logo">
+    ♞ <span>PÉGASE</span> AUTOMOBILE
+  </div>
+
+
+  <div id="intro-car">
+
+    <div class="car-roof-intro"></div>
+
+    <div class="car-window-intro"></div>
+    <div class="car-window-intro second"></div>
+
+    <div class="car-body-intro"></div>
+
+    <div class="car-light-intro"></div>
+
+    <div class="car-wheel-intro left"></div>
+    <div class="car-wheel-intro right"></div>
+
+  </div>
+
+</div>
+
 
 
 <!-- =====================================================
@@ -268,6 +389,7 @@ body {
   </nav>
 
 </header>
+
 
 
 <!-- =====================================================
@@ -304,6 +426,7 @@ body {
 </section>
 
 
+
 <!-- =====================================================
      VÉHICULES
 ===================================================== -->
@@ -326,8 +449,6 @@ body {
 
   </div>
 
-
-  <!-- FILTRES -->
 
   <div class="filters">
 
@@ -363,8 +484,6 @@ body {
   </div>
 
 
-  <!-- ANNONCES -->
-
   <div id="cars" class="cars"></div>
 
 
@@ -377,6 +496,7 @@ body {
   </p>
 
 </section>
+
 
 
 <!-- =====================================================
@@ -400,12 +520,9 @@ body {
 
   <div class="services">
 
-
     <article>
 
-      <span>
-        ✦
-      </span>
+      <span>✦</span>
 
       <h3>
         Sélection
@@ -420,9 +537,7 @@ body {
 
     <article>
 
-      <span>
-        ◆
-      </span>
+      <span>◆</span>
 
       <h3>
         Transparence
@@ -437,9 +552,7 @@ body {
 
     <article>
 
-      <span>
-        ↗
-      </span>
+      <span>↗</span>
 
       <h3>
         Contact direct
@@ -451,10 +564,10 @@ body {
 
     </article>
 
-
   </div>
 
 </section>
+
 
 
 <!-- =====================================================
@@ -489,6 +602,7 @@ body {
 </section>
 
 
+
 <!-- =====================================================
      FOOTER
 ===================================================== -->
@@ -505,24 +619,21 @@ body {
 </footer>
 
 
+
 <!-- =====================================================
-     JAVASCRIPT
+     APP.JS
 ===================================================== -->
 
 <script src="app.js"></script>
 
 
-<!-- =====================================================
-     ANNÉE
-===================================================== -->
-
 <script>
 
-  const yearElement = document.querySelector("#year");
+const year = document.querySelector("#year");
 
-  if (yearElement) {
-    yearElement.textContent = new Date().getFullYear();
-  }
+if (year) {
+  year.textContent = new Date().getFullYear();
+}
 
 </script>
 
