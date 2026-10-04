@@ -2,15 +2,9 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta
-  name="viewport"
-  content="width=device-width,initial-scale=1"
->
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Véhicule — Pégase Automobile</title>
-<link
-  rel="stylesheet"
-  href="style.css"
->
+<link rel="stylesheet" href="style.css">
 <style>
 .vehicle-page {
   max-width: 1100px;
@@ -76,6 +70,7 @@
   color: white;
   padding: 7px 14px;
   border-radius: 20px;
+  z-index: 5;
 }
 .vehicle-content {
   padding: 30px;
@@ -154,92 +149,60 @@
 </head>
 <body>
 <div class="vehicle-page">
-  <a
-    href="index.html"
-    class="vehicle-back"
-  >
+  <a href="index.html" class="vehicle-back">
     ← Retour aux annonces
   </a>
   <div id="loading">
     Chargement du véhicule...
   </div>
-  <div
-    id="error"
-    class="error-message"
-    hidden
-  >
+  <div id="error" class="error-message" hidden>
     Véhicule introuvable.
   </div>
-  <article
-    id="vehicle"
-    class="vehicle-card"
-    hidden
+  <article id="vehicle" class="vehicle-card" hidden>
+<div class="vehicle-gallery">
+  <button id="prevPhoto" class="gallery-button">
+    ‹
+  </button>
+  <img id="vehiclePhoto" alt="Photo du véhicule">
+  <button id="nextPhoto" class="gallery-button">
+    ›
+  </button>
+  <div id="photoCounter" class="photo-counter"></div>
+</div>
+<div class="vehicle-content">
+  <h1 id="vehicleTitle" class="vehicle-title"></h1>
+  <div id="vehiclePrice" class="vehicle-price"></div>
+  <div class="vehicle-info">
+    <div>
+      📅 <strong>Année</strong><br>
+      <span id="vehicleYear"></span>
+    </div>
+    <div>
+      🛣️ <strong>Kilométrage</strong><br>
+      <span id="vehicleKm"></span>
+    </div>
+    <div>
+      ⛽ <strong>Carburant</strong><br>
+      <span id="vehicleFuel"></span>
+    </div>
+    <div>
+      ⚙️ <strong>Boîte</strong><br>
+      <span id="vehicleGear"></span>
+    </div>
+    <div>
+      📍 <strong>Localisation</strong><br>
+      <span id="vehicleLocation"></span>
+    </div>
+  </div>
+  <h2>Description</h2>
+  <p id="vehicleDescription" class="vehicle-description"></p>
+  <a
+    class="vehicle-contact"
+    href="tel:+33643486124"
   >
-    <div class="vehicle-gallery">
-      <button
-        id="prevPhoto"
-        class="gallery-button"
-      >
-        ‹
-      </button>
-      <img
-        id="vehiclePhoto"
-        alt=""
-      >
-      <button
-        id="nextPhoto"
-        class="gallery-button"
-      >
-        ›
-      </button>
-      <div
-        id="photoCounter"
-        class="photo-counter"
-      ></div>
-    </div>
-    <div class="vehicle-content">
-      <h1
-        id="vehicleTitle"
-        class="vehicle-title"
-      ></h1>
-      <div
-        id="vehiclePrice"
-        class="vehicle-price"
-      ></div>
-      <div class="vehicle-info">
-        <div>
-          📅 <strong>Année</strong><br>
-          <span id="vehicleYear"></span>
-        </div>
-        <div>
-          🛣️ <strong>Kilométrage</strong><br>
-          <span id="vehicleKm"></span>
-        </div>
-        <div>
-          ⛽ <strong>Carburant</strong><br>
-          <span id="vehicleFuel"></span>
-        </div>
-        <div>
-          ⚙️ <strong>Boîte</strong><br>
-          <span id="vehicleGear"></span>
-        </div>
-        <div>
-          📍 <strong>Localisation</strong><br>
-          <span id="vehicleLocation"></span>
-        </div>
-      </div>
-      <h2>Description</h2>
-      <p
-        id="vehicleDescription"
-        class="vehicle-description"
-      ></p>
-      <a
-        class="vehicle-contact"
-        href="tel:+33643486124"
-      >
-        📞 Mettre en relation avec le vendeur
-      </a>
-    </div>
+    📞 Mettre en relation avec le vendeur
+  </a>
+</div>
   </article>
 </div>
 <script>
@@ -251,61 +214,109 @@ const API =
   `${SUPABASE_URL}/rest/v1/cars`;
 let photos = [];
 let currentPhoto = 0;
-/* =========================
-   RÉCUPÉRER L'ID
-========================= */
 const params =
-  new URLSearchParams(
-    window.location.search
-  );
+  new URLSearchParams(window.location.search);
 const carId =
   params.get("id");
-/* =========================
-   CHARGER LE VÉHICULE
-========================= */
 async function loadVehicle() {
   if (!carId) {
     showError();
     return;
   }
   try {
-    const response =
-      await fetch(
-        `${API}?id=eq.${encodeURIComponent(carId)}&limit=1`,
-        {
-          headers: {
-            apikey: SUPABASE_KEY,
-            Authorization:
-              `Bearer ${SUPABASE_KEY}`
-          }
+    const response = await fetch(
+      `${API}?select=*&id=eq.${encodeURIComponent(carId)}&limit=1`,
+      {
+        method: "GET",
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json"
         }
-      );
+      }
+    );
     if (!response.ok) {
-      throw new Error(
-        await response.text()
-      );
+      throw new Error(await response.text());
     }
-    const data =
-      await response.json();
+    const data = await response.json();
+    console.log("Véhicule récupéré :", data);
     if (!data.length) {
       showError();
       return;
     }
-    const car =
-      data[0];
-    console.log("Véhicule récupéré :", car);
-    displayVehicle(car);
+    displayVehicle(data[0]);
   } catch (error) {
-    console.error(
-      "Erreur lors du chargement du véhicule :",
-      error
-    );
+    console.error("Erreur :", error);
     showError();
   }
 }
-/* =========================
-   AFFICHER LE VÉHICULE
-========================= */
+function getPhotos(value) {
+  if (!value) {
+    return [];
+  }
+  // Cas normal : Supabase renvoie directement un tableau
+  if (Array.isArray(value)) {
+    return value
+      .filter(photo => typeof photo === "string")
+      .map(photo => photo.trim())
+      .filter(Boolean);
+  }
+  // Cas où Supabase renvoie une chaîne
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (!text) {
+      return [];
+    }
+    // Tableau JSON : ["url1","url2"]
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter(photo => typeof photo === "string")
+          .map(photo => photo.trim())
+          .filter(Boolean);
+      }
+      if (
+        typeof parsed === "string" &&
+        parsed.startsWith("http")
+      ) {
+        return [parsed];
+      }
+    } catch (error) {
+      // On continue avec les autres formats
+    }
+    // Une seule URL
+    if (text.startsWith("http")) {
+      return [text];
+    }
+    // Format PostgreSQL possible : {url1,url2}
+    if (
+      text.startsWith("{") &&
+      text.endsWith("}")
+    ) {
+      const inside =
+        text.slice(1, -1);
+      return inside
+        .split(",")
+        .map(photo =>
+          photo
+            .trim()
+            .replace(/^"(.*)"$/, "$1")
+        )
+        .filter(photo =>
+          photo.startsWith("http")
+        );
+    }
+    // Dernier secours :
+    // récupère toutes les URL présentes dans le texte
+    const matches =
+      text.match(/https?:\/\/[^\s"'\\\]]+/g);
+    if (matches) {
+      return matches;
+    }
+  }
+  return [];
+}
 function displayVehicle(car) {
   document.title =
     `${car.brand || ""} ${car.model || ""} — Pégase Automobile`;
@@ -327,49 +338,11 @@ function displayVehicle(car) {
     car.location || "";
   document.querySelector("#vehicleDescription").textContent =
     car.description || "Aucune description.";
-  /* =========================
-     RÉCUPÉRER LES PHOTOS
-  ========================= */
-  photos = [];
-  if (Array.isArray(car.photos)) {
-    photos =
-      car.photos.filter(
-        photo =>
-          typeof photo === "string" &&
-          photo.trim() !== ""
-      );
-  } else if (typeof car.photos === "string") {
-    const value =
-      car.photos.trim();
-    try {
-      const parsed =
-        JSON.parse(value);
-      if (Array.isArray(parsed)) {
-        photos =
-          parsed.filter(
-            photo =>
-              typeof photo === "string" &&
-              photo.trim() !== ""
-          );
-      } else if (
-        typeof parsed === "string" &&
-        parsed.startsWith("http")
-      ) {
-        photos = [parsed];
-      }
-    } catch {
-      if (value.startsWith("http")) {
-        photos = [value];
-      }
-    }
-  }
+  photos = getPhotos(car.photos);
   console.log("Photos trouvées :", photos);
   currentPhoto = 0;
   updatePhoto();
 }
-/* =========================
-   AFFICHER LA PHOTO
-========================= */
 function updatePhoto() {
   const image =
     document.querySelector("#vehiclePhoto");
@@ -409,43 +382,30 @@ function updatePhoto() {
       "block";
   }
 }
-/* =========================
-   PHOTO PRÉCÉDENTE
-========================= */
 document
   .querySelector("#prevPhoto")
-  .onclick = () => {
+  .addEventListener("click", () => {
     if (!photos.length) return;
     currentPhoto--;
     if (currentPhoto < 0) {
-      currentPhoto =
-        photos.length - 1;
+      currentPhoto = photos.length - 1;
     }
     updatePhoto();
-  };
-/* =========================
-   PHOTO SUIVANTE
-========================= */
+  });
 document
   .querySelector("#nextPhoto")
-  .onclick = () => {
+  .addEventListener("click", () => {
     if (!photos.length) return;
     currentPhoto++;
     if (currentPhoto >= photos.length) {
       currentPhoto = 0;
     }
     updatePhoto();
-  };
-/* =========================
-   ERREUR
-========================= */
+  });
 function showError() {
   document.querySelector("#loading").hidden = true;
   document.querySelector("#error").hidden = false;
 }
-/* =========================
-   LANCEMENT
-========================= */
 loadVehicle();
 </script>
 </body>
